@@ -1,6 +1,6 @@
-# FReD - Free-energy Reweighting and Dataset Builder for REST2-GROMACS
+# FReD
 
-FReD 是一个 Replica-Exchange Structured Track 数据构建与重加权的工具集，用于将 REST2-GROMACS 多副本模拟结果转换为无偏平衡系综，以支持基于生成模型的自由能估计。
+FReD（Free-energy Reweighting and Dataset Builder） 是一个 Replica-Exchange Structured Track 数据构建与重加权的工具集，用于将 REST2-GROMACS 多副本模拟结果转换为无偏平衡系综，以支持基于生成模型的自由能估计。
 
 ## 项目结构
 

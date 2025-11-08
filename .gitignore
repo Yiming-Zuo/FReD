@@ -129,9 +129,5 @@ results/figures/*.png
 results/figures/*.pdf
 results/reports/*.txt
 results/reports/*.md
-results/figures/README.md
-results/reports/README.md
-outputs/README.md
-results/README.md
 
 data/*
