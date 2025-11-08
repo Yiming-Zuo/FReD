@@ -115,7 +115,7 @@ ENV/
 
 *.dcd
 # *.pdb
-# *.png
+*.png
 *.pkl
 *.xml
 *.arrow

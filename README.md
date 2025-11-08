@@ -1,29 +1,29 @@
 # FReD
 
-FReD（Free-energy Reweighting and Dataset Builder） 是一个 Replica-Exchange Structured Track 数据构建与重加权的工具集，用于将 REST2-GROMACS 多副本模拟结果转换为无偏平衡系综，以支持基于生成模型的自由能估计。
+FReD（Free-energy Reweighting and Dataset Builder） 是一个 Replica-Exchange Structured Track 数据构建与重加权的工具集，用于将 REST2-GROMACS 采样结果转换为无偏平衡系综，以支持基于生成模型的自由能估计。
 
 ## 项目结构
 
 ```
 FReD/
-├── README.md                   # 本文件
-├── requirements.txt            # Python 依赖
-├── data/                       # GROMACS 原始数据
-│   └── rep_*/                 # 各副本的模拟输出
-├── scripts/                    # 分析脚本
+├── README.md
+├── requirements.txt
+├── data/
+│   └── rep_*/                 # 各副本的采样输出
+├── scripts/
 │   ├── 00_data_validation.py   # 数据完整性检查
 │   ├── 01_extract_energies.py  # 从 EDR 提取能量矩阵
 │   ├── 02_parse_exchanges.py   # 从 LOG 解析副本交换
 │   ├── 03_build_dataset.py     # 构建 MBAR 数据集
 │   ├── 04_mbar_analysis.py     # MBAR 重加权分析
 │   ├── 05_trajectory_analysis.py # 轨迹分析
-│   └── utils/                  # 工具模块
-├── notebooks/                  # Jupyter 教程
-├── outputs/                    # 处理后的数据
-├── results/                    # 分析结果
-│   ├── figures/               # 图表
-│   └── reports/               # 文本报告
-└── tests/                      # 单元测试
+│   └── utils/
+├── notebooks/
+├── outputs/
+├── results/
+│   ├── figures/
+│   └── reports/
+└── tests/
 ```
 
 ## 快速开始

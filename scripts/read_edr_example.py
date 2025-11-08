@@ -127,8 +127,8 @@ def export_to_csv(df, output_path):
 
 def main():
     # 设置文件路径
-    edr_file = '/Users/yiming/projects/rest2/data/rep_0/prod.edr'
-    output_dir = '/Users/yiming/projects/rest2/test_alanine_dipeptide'
+    edr_file = '/Users/yiming/projects/rest2/FRED/data/rep_0/prod.edr'
+    output_dir = '/Users/yiming/projects/rest2/FRED/outputs'
 
     # 读取 .edr 文件
     df = read_edr_file(edr_file)
