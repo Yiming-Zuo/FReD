@@ -9,10 +9,6 @@
 3. 构建 u_kn[cycle, replica, state] 能量矩阵
 4. 保存为 NPZ 格式
 
-核心挑战：
-- GROMACS EDR 是否包含所有 λ 状态的能量？
-- 如果不包含，需要使用 gmx mdrun -rerun 重新计算
-
 使用方法：
     conda activate femto_test
     python scripts/01_extract_energies.py

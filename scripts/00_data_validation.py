@@ -514,32 +514,71 @@ def main():
         else:
             print(f"{YELLOW}  ⚠️  可能不是标准的 REST2 模拟{RESET}")
 
-    # 保存JSON报告
+    # 保存JSON报告（简化版：只显示问题项）
     report_dir = Path('outputs')
     report_dir.mkdir(exist_ok=True)
 
+    # 收集问题项
+    issues = []
+
+    # 检查目录问题
+    if dir_check['missing']:
+        issues.append({
+            'type': 'directory',
+            'severity': 'error',
+            'message': f"缺失副本目录: {', '.join(dir_check['missing'])}"
+        })
+
+    # 检查文件完整性问题
+    for rep, check in file_checks.items():
+        if check['status'] != 'ok':
+            problem_files = [f for f, info in check['files'].items() if info['status'] != 'ok']
+            issues.append({
+                'type': 'file_integrity',
+                'replica': rep,
+                'severity': check['status'],
+                'message': f"文件问题: {', '.join(problem_files)}"
+            })
+
+    # 检查Lambda问题
+    if has_replica_lambda_all:
+        if len(set(replica_lambda_values.values())) == 1:
+            issues.append({
+                'type': 'lambda',
+                'severity': 'warning',
+                'message': f"所有副本Lambda值相同: {list(replica_lambda_values.values())[0]}"
+            })
+    else:
+        issues.append({
+            'type': 'lambda',
+            'severity': 'warning',
+            'message': "部分副本缺少Lambda标签"
+        })
+
+    # 检查多状态能量问题
+    if not has_multistate_energy_all:
+        issues.append({
+            'type': 'multistate_energy',
+            'severity': 'error',
+            'message': "缺少MBAR所需的多状态能量列",
+            'solution': "使用 gmx mdrun -rerun 重新计算"
+        })
+
+    # 构建简化报告
     report_data = {
-        'directory_check': dir_check,
-        'file_integrity': file_checks,
-        'format_validation': format_validations,
-        'lambda_analysis': {
-            'replica_lambda': {
-                'has_all': has_replica_lambda_all,
-                'values': replica_lambda_values,
-                'n_unique': len(set(replica_lambda_values.values())) if replica_lambda_values else 0
-            },
-            'multistate_energy': {
-                'has_all': has_multistate_energy_all,
-                'n_states': n_states_list[0] if has_multistate_energy_all and n_states_list else 0
-            },
+        'summary': {
+            'overall_status': overall_status,
+            'n_replicas': dir_check['actual'],
+            'n_issues': len(issues),
             'is_rest2': has_replica_lambda_all and len(set(replica_lambda_values.values())) > 1 if replica_lambda_values else False,
             'is_mbar_ready': has_multistate_energy_all
         },
-        'summary': {
-            'overall_status': overall_status,
-            'n_ok': n_ok,
-            'n_warning': n_warning,
-            'n_error': n_error,
+        'issues': issues,
+        'lambda_analysis': {
+            'replica_lambda_values': replica_lambda_values if replica_lambda_values else {},
+            'n_unique_lambdas': len(set(replica_lambda_values.values())) if replica_lambda_values else 0,
+            'has_multistate_energy': has_multistate_energy_all,
+            'n_multistate_cols': n_states_list[0] if has_multistate_energy_all and n_states_list else 0
         }
     }
 
