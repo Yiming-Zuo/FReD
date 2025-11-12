@@ -38,7 +38,10 @@ EXCHANGE_LINE_PATTERN = r'Repl\s+ex\s+((?:\d+\s*x?\s*)+)'
 
 def detect_lambda_states(edr_df: pd.DataFrame) -> List[float]:
     """
-    从EDR DataFrame检测Lambda状态
+    从EDR DataFrame检测Lambda状态索引
+
+    ⚠️  重要：此函数返回Lambda状态的索引（0, 1, 2, ...），而不是真实的λ值。
+    要获取真实的λ值或温度，需要从tpr文件或mdp文件中读取。
 
     Parameters
     ----------
@@ -47,8 +50,8 @@ def detect_lambda_states(edr_df: pd.DataFrame) -> List[float]:
 
     Returns
     -------
-    lambda_values : list of float
-        排序后的唯一Lambda值列表
+    lambda_indices : list of int
+        Lambda状态索引列表 [0, 1, 2, ...]（不是真实的λ值）
     """
     lambda_indices = []
 
@@ -67,7 +70,10 @@ def detect_lambda_states(edr_df: pd.DataFrame) -> List[float]:
     n_states = max(lambda_indices) + 1
     lambda_values = list(range(n_states))
 
-    logger.info(f"检测到 {n_states} 个Lambda状态")
+    logger.info(f"检测到 {n_states} 个Lambda状态（返回索引，非真实λ值）")
+    logger.warning(
+        "⚠️ 返回的是Lambda状态索引 [0, 1, 2, ...]，不是真实的λ值或温度。"
+    )
 
     return lambda_values
 
@@ -224,25 +230,42 @@ def extract_energy_matrix(data_dir: Union[str, Path] = 'data',
 
     logger.info(f"总周期数: {n_cycles}, 总样本数: {n_samples_total}")
 
-    # 5. 重塑为MBAR输入格式
+    # 5. 构建初始的按副本组织的能量矩阵
     # 从 List[(n_cycles, n_states)] 转换为 (n_states, n_samples_total)
+    # 此时按"副本→时间"展开
 
-    u_kn = np.zeros((n_states, n_samples_total))
-    cycle_indices = np.zeros(n_samples_total, dtype=int)
-    replica_indices = np.zeros(n_samples_total, dtype=int)
+    u_kn_by_replica = np.zeros((n_states, n_samples_total))
+    cycle_indices_by_replica = np.zeros(n_samples_total, dtype=int)
+    replica_indices_by_replica = np.zeros(n_samples_total, dtype=int)
 
     sample_idx = 0
     for rep_idx, u_matrix in enumerate(u_replicas):
         for cycle_idx in range(n_cycles):
             for state_idx in range(n_states):
-                u_kn[state_idx, sample_idx] = u_matrix[cycle_idx, state_idx]
+                u_kn_by_replica[state_idx, sample_idx] = u_matrix[cycle_idx, state_idx]
 
-            cycle_indices[sample_idx] = cycle_idx
-            replica_indices[sample_idx] = rep_idx
+            cycle_indices_by_replica[sample_idx] = cycle_idx
+            replica_indices_by_replica[sample_idx] = rep_idx
             sample_idx += 1
 
-    # 6. 计算N_k（假设每个状态的样本数相等）
+    logger.info("构建了按副本组织的能量矩阵")
+    logger.info(f"  u_kn_by_replica shape: {u_kn_by_replica.shape}")
+    logger.info(f"  样本顺序: [rep0_cyc0, rep0_cyc1, ..., rep{n_replicas-1}_cyc{n_cycles-1}]")
+
+    # 6. 需要重新组织为按状态分组（需要replica_to_state映射）
+    # 暂时返回按副本组织的数据，并标记需要重组
+    # 注意：这里的u_kn和N_k是错误的，必须使用reorganize_u_kn_by_state重组
+    u_kn = u_kn_by_replica
+    cycle_indices = cycle_indices_by_replica
+    replica_indices = replica_indices_by_replica
+
+    # 警告：N_k是占位符，需要使用真实的replica_to_state映射计算
     N_k = np.full(n_states, n_samples_total // n_states, dtype=int)
+
+    warnings_list.append(
+        "⚠️ 能量矩阵当前按副本组织，N_k为占位符。"
+        "必须调用reorganize_u_kn_by_state()重新组织为按状态分组。"
+    )
 
     # 7. 验证能量矩阵
     validation_result = validate_energy_matrix(u_kn, N_k)
@@ -569,15 +592,40 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
     logger.info("提取能量矩阵...")
     energy_data = extract_energy_matrix(data_dir)
 
-    # 3. 解析交换记录
+    # 3. 解析交换记录并验证LOG一致性
     logger.info("解析副本交换记录...")
     data_path = Path(data_dir)
     dir_check = validation.check_directory_structure(data_dir)
     replica_dirs = dir_check['found']
 
-    # 从所有LOG文件合并交换记录（假设只用第一个副本的LOG）
+    # 从第一个副本读取交换记录
     first_log = data_path / replica_dirs[0] / 'prod.log'
     exchange_records = parse_gromacs_log(first_log)
+
+    # 验证LOG一致性（检查前3个副本）
+    if len(replica_dirs) > 1:
+        logger.info("验证LOG文件一致性...")
+        n_to_check = min(3, len(replica_dirs))
+
+        for i in range(1, n_to_check):
+            other_log = data_path / replica_dirs[i] / 'prod.log'
+            if not other_log.exists():
+                logger.warning(f"副本{i}的LOG文件不存在: {other_log}")
+                continue
+
+            other_exchange_records = parse_gromacs_log(other_log)
+
+            # 检查交换轮次数是否一致
+            if exchange_records['n_exchanges'] != other_exchange_records['n_exchanges']:
+                logger.error(
+                    f"LOG文件不一致: {replica_dirs[0]}有{exchange_records['n_exchanges']}次交换, "
+                    f"{replica_dirs[i]}有{other_exchange_records['n_exchanges']}次交换"
+                )
+                raise ValueError("不同副本的LOG文件包含不同数量的交换记录")
+
+        logger.info(f"✓ LOG文件一致性验证通过（检查了{n_to_check}个副本）")
+    else:
+        logger.warning("只有一个副本，跳过LOG一致性验证")
 
     # 4. 构建状态映射
     logger.info("构建replica→state映射...")
@@ -587,15 +635,32 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
         n_cycles=energy_data['n_cycles']
     )
 
-    # 5. 计算交换统计
+    # 5. 重新组织u_kn矩阵（关键修复：从副本分组→状态分组）
+    logger.info("重新组织u_kn矩阵（按状态分组）...")
+    reorganized = reorganize_u_kn_by_state(
+        u_kn_by_replica=energy_data['u_kn'],
+        replica_to_state=replica_to_state,
+        cycle_indices=energy_data['cycle_indices'],
+        replica_indices=energy_data['replica_indices']
+    )
+
+    # 更新能量矩阵和N_k为正确的值
+    u_kn_correct = reorganized['u_kn']
+    N_k_correct = reorganized['N_k']
+
+    logger.info(f"✓ u_kn重组完成")
+    logger.info(f"  原N_k (错误): {energy_data['N_k']}")
+    logger.info(f"  新N_k (正确): {N_k_correct}")
+
+    # 6. 计算交换统计
     exchange_stats = calculate_exchange_statistics(exchange_records, replica_to_state)
 
-    # 6. 验证数据一致性
+    # 7. 验证数据一致性
     logger.info("验证数据一致性...")
     consistency = verify_data_consistency(
-        energy_data['u_kn'],
+        u_kn_correct,
         replica_to_state,
-        energy_data['N_k']
+        N_k_correct
     )
 
     if not consistency['is_consistent']:
@@ -604,10 +669,10 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
             '\n'.join(consistency['issues'])
         )
 
-    # 7. 组装完整输出
+    # 8. 组装完整输出
     mbar_input = {
-        'u_kn': energy_data['u_kn'],
-        'N_k': energy_data['N_k'],
+        'u_kn': u_kn_correct,
+        'N_k': N_k_correct,
         'replica_to_state': replica_to_state,
         'lambda_values': energy_data['lambda_values'],
         'n_cycles': energy_data['n_cycles'],
@@ -615,7 +680,11 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
         'n_states': energy_data['n_states'],
         'exchange_statistics': exchange_stats,
         'validation_summary': validation_report['summary'],
-        'status': 'ok'
+        'state_sample_indices': reorganized['state_sample_indices'],
+        'state_cycle_indices': reorganized['state_cycle_indices'],
+        'state_replica_indices': reorganized['state_replica_indices'],
+        'status': 'ok',
+        'warnings': energy_data.get('warnings', [])
     }
 
     logger.info("MBAR输入数据准备完成")
@@ -631,14 +700,20 @@ def verify_data_consistency(u_kn: np.ndarray,
     """
     验证u_kn和replica_to_state的维度一致性
 
+    这是MBAR输入数据的关键验证函数，确保：
+    1. u_kn的列数等于总样本数
+    2. N_k的总和等于总样本数
+    3. replica_to_state中的状态索引在有效范围内
+    4. u_kn已按状态正确分组
+
     Parameters
     ----------
     u_kn : np.ndarray
-        shape=(n_states, n_samples_total)
+        shape=(n_states, n_samples_total) 按状态分组的能量矩阵
     replica_to_state : np.ndarray
         shape=(n_cycles, n_replicas)
     N_k : np.ndarray
-        shape=(n_states,)
+        shape=(n_states,) 每个状态的真实样本数
 
     Returns
     -------
@@ -649,6 +724,11 @@ def verify_data_consistency(u_kn: np.ndarray,
 
     n_states, n_samples_total = u_kn.shape
     n_cycles, n_replicas = replica_to_state.shape
+
+    logger.info(f"验证数据一致性...")
+    logger.info(f"  u_kn shape: {u_kn.shape}")
+    logger.info(f"  replica_to_state shape: {replica_to_state.shape}")
+    logger.info(f"  N_k: {N_k}")
 
     # 1. 检查总样本数
     expected_samples = n_cycles * n_replicas
@@ -673,6 +753,24 @@ def verify_data_consistency(u_kn: np.ndarray,
             f"状态索引超出范围: [{min_state}, {max_state}], 应在[0, {n_states-1}]内"
         )
 
+    # 4. 验证N_k与replica_to_state是否一致
+    # 统计replica_to_state中每个状态的实际出现次数
+    state_counts_from_mapping = np.bincount(replica_to_state.flatten(), minlength=n_states)
+
+    if not np.array_equal(N_k, state_counts_from_mapping):
+        issues.append(
+            f"N_k与replica_to_state不一致:\n"
+            f"  N_k: {N_k}\n"
+            f"  实际统计: {state_counts_from_mapping}"
+        )
+
+    # 5. 检查能量矩阵是否包含NaN或Inf
+    if np.any(np.isnan(u_kn)):
+        issues.append("u_kn包含NaN值")
+
+    if np.any(np.isinf(u_kn)):
+        issues.append("u_kn包含Inf值")
+
     is_consistent = len(issues) == 0
 
     if is_consistent:
@@ -685,4 +783,123 @@ def verify_data_consistency(u_kn: np.ndarray,
     return {
         'is_consistent': is_consistent,
         'issues': issues
+    }
+
+
+def reorganize_u_kn_by_state(u_kn_by_replica: np.ndarray,
+                              replica_to_state: np.ndarray,
+                              cycle_indices: np.ndarray,
+                              replica_indices: np.ndarray) -> Dict:
+    """
+    将按副本组织的u_kn矩阵重新组织为按状态分组
+
+    这是修复MBAR输入数据的核心函数。原始数据按"副本→时间"展开，
+    但MBAR要求按"状态"分组，且N_k必须反映每个状态的真实样本数。
+
+    Parameters
+    ----------
+    u_kn_by_replica : np.ndarray
+        按副本组织的能量矩阵，shape=(n_states, n_samples_total)
+        列顺序：[rep0_cyc0, rep0_cyc1, ..., rep0_cycN, rep1_cyc0, ...]
+    replica_to_state : np.ndarray
+        副本到状态的映射，shape=(n_cycles, n_replicas)
+        mapping[cycle, replica] = state
+    cycle_indices : np.ndarray
+        每个样本的周期索引，shape=(n_samples_total,)
+    replica_indices : np.ndarray
+        每个样本的副本索引，shape=(n_samples_total,)
+
+    Returns
+    -------
+    result : dict
+        {
+            'u_kn': np.ndarray,  # shape=(n_states, n_samples_total)
+                                 # 按状态重新组织：[state0的样本 | state1的样本 | ...]
+            'N_k': np.ndarray,   # shape=(n_states,), 每个状态的真实样本数
+            'state_sample_indices': List[np.ndarray],  # 每个状态的样本索引列表
+            'state_cycle_indices': List[np.ndarray],   # 每个状态的周期索引
+            'state_replica_indices': List[np.ndarray]  # 每个状态的副本索引
+        }
+
+    Example
+    -------
+    >>> # 假设2个副本，3个状态，4个周期
+    >>> u_kn_by_replica.shape  # (3, 8)  # 8 = 2副本 × 4周期
+    >>> # 列顺序：[rep0_cyc0, rep0_cyc1, rep0_cyc2, rep0_cyc3,
+    ...            rep1_cyc0, rep1_cyc1, rep1_cyc2, rep1_cyc3]
+    >>>
+    >>> replica_to_state = np.array([
+    ...     [0, 2],  # cycle 0: rep0在state0, rep1在state2
+    ...     [1, 2],  # cycle 1: rep0在state1, rep1在state2
+    ...     [1, 0],  # cycle 2: rep0在state1, rep1在state0
+    ...     [2, 0]   # cycle 3: rep0在state2, rep1在state0
+    ... ])
+    >>>
+    >>> result = reorganize_u_kn_by_state(u_kn_by_replica, ...)
+    >>> result['N_k']  # array([3, 2, 3])  # state0有3个，state1有2个，state2有3个
+    """
+    n_states, n_samples_total = u_kn_by_replica.shape
+    n_cycles, n_replicas = replica_to_state.shape
+
+    logger.info("开始重新组织u_kn矩阵（从副本分组→状态分组）")
+
+    # 1. 为每个状态收集样本索引
+    state_sample_indices = [[] for _ in range(n_states)]
+    state_cycle_indices = [[] for _ in range(n_states)]
+    state_replica_indices = [[] for _ in range(n_states)]
+
+    for sample_idx in range(n_samples_total):
+        rep_id = replica_indices[sample_idx]
+        cycle_id = cycle_indices[sample_idx]
+
+        # 查询该样本属于哪个状态
+        state_id = replica_to_state[cycle_id, rep_id]
+
+        # 将该样本归类到对应状态
+        state_sample_indices[state_id].append(sample_idx)
+        state_cycle_indices[state_id].append(cycle_id)
+        state_replica_indices[state_id].append(rep_id)
+
+    # 2. 计算每个状态的真实样本数
+    N_k = np.array([len(indices) for indices in state_sample_indices], dtype=int)
+
+    logger.info(f"每个状态的样本数 N_k: {N_k}")
+    logger.info(f"  总样本数: {N_k.sum()} (应该等于{n_samples_total})")
+
+    # 验证
+    if N_k.sum() != n_samples_total:
+        raise ValueError(
+            f"重组后的样本数不一致: N_k.sum()={N_k.sum()} != {n_samples_total}"
+        )
+
+    # 3. 重新组装u_kn矩阵（按状态分组）
+    u_kn_by_state = np.zeros((n_states, n_samples_total))
+
+    current_col = 0
+    for state_id in range(n_states):
+        sample_indices_for_state = state_sample_indices[state_id]
+        n_samples_in_state = len(sample_indices_for_state)
+
+        if n_samples_in_state > 0:
+            # 提取该状态的所有样本列
+            u_kn_by_state[:, current_col:current_col + n_samples_in_state] = \
+                u_kn_by_replica[:, sample_indices_for_state]
+
+            current_col += n_samples_in_state
+
+    logger.info("✓ u_kn矩阵重组完成")
+    logger.info(f"  新u_kn shape: {u_kn_by_state.shape}")
+    logger.info(f"  列顺序: [state0的{N_k[0]}个样本 | state1的{N_k[1]}个样本 | ...]")
+
+    # 转换为numpy数组
+    state_sample_indices_arrays = [np.array(idx, dtype=int) for idx in state_sample_indices]
+    state_cycle_indices_arrays = [np.array(idx, dtype=int) for idx in state_cycle_indices]
+    state_replica_indices_arrays = [np.array(idx, dtype=int) for idx in state_replica_indices]
+
+    return {
+        'u_kn': u_kn_by_state,
+        'N_k': N_k,
+        'state_sample_indices': state_sample_indices_arrays,
+        'state_cycle_indices': state_cycle_indices_arrays,
+        'state_replica_indices': state_replica_indices_arrays
     }

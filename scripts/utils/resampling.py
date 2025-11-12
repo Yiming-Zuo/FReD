@@ -97,6 +97,8 @@ def extract_configurations(xtc_paths: List[str],
     """
     从XTC文件提取构象坐标
 
+    性能优化：使用轨迹缓存，每个副本只加载一次完整轨迹
+
     Parameters
     ----------
     xtc_paths : list of str
@@ -131,22 +133,30 @@ def extract_configurations(xtc_paths: List[str],
 
     logger.info(f"从XTC提取 {n_samples} 个构象...")
 
-    # 缓存已加载的轨迹（避免重复读取）
+    # 预加载所有副本的完整轨迹（性能优化）
     traj_cache = {}
+    n_replicas = len(xtc_paths)
 
+    logger.info(f"预加载 {n_replicas} 个副本的完整轨迹...")
+    for rep_id, xtc_path in enumerate(xtc_paths):
+        logger.info(f"  加载副本{rep_id}: {xtc_path}")
+        traj_cache[rep_id] = io.load_trajectory(xtc_path, top_path)
+
+    logger.info(f"✓ 所有轨迹已加载到内存")
+
+    # 提取构象
     for i, sample_idx in enumerate(sample_indices):
         replica_id = replica_indices[sample_idx]
         cycle_id = cycle_indices[sample_idx]
 
-        xtc_path = xtc_paths[replica_id]
+        # 从缓存中获取轨迹
+        traj = traj_cache[replica_id]
 
-        # 加载单帧（高效）
-        traj = io.load_trajectory_frame(xtc_path, top_path, cycle_id)
-
-        coordinates.append(traj.xyz[0])  # shape=(n_atoms, 3)
+        # 提取指定帧
+        coordinates.append(traj.xyz[cycle_id])  # shape=(n_atoms, 3)
 
         if extract_box:
-            boxes.append(traj.unitcell_vectors[0])  # shape=(3, 3)
+            boxes.append(traj.unitcell_vectors[cycle_id])  # shape=(3, 3)
 
         # 进度日志
         if (i + 1) % 1000 == 0 or (i + 1) == n_samples:
@@ -154,6 +164,7 @@ def extract_configurations(xtc_paths: List[str],
 
     coordinates = np.array(coordinates, dtype=np.float32)  # (n_samples, n_atoms, 3)
 
+    # 使用最后一个轨迹的拓扑
     result = {
         'coordinates': coordinates,
         'n_atoms': coordinates.shape[1],
