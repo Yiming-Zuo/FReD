@@ -1,12 +1,22 @@
+# -*- coding: utf-8 -*-
 """
-FReD 工具模块
+FReD Utils 模块
 
-包含用于 GROMACS REST2 数据处理的工具函数
+功能模块：
+- validation: 数据验证
+- io: 统一文件读写
+- preprocessing: 能量提取、交换解析、状态映射
+- mbar: MBAR核心计算
+- resampling: 重采样和数据集构建
+- visualization: 诊断图表
 """
 
-from . import edr_parser
-from . import log_parser
-from . import xtc_reader
-from . import mbar_utils
-
-__all__ = ['edr_parser', 'log_parser', 'xtc_reader', 'mbar_utils']
+__version__ = "0.2.0"
+__all__ = [
+    "validation",
+    "io",
+    "preprocessing",
+    "mbar",
+    "resampling",
+    "visualization",
+]
