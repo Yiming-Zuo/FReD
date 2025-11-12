@@ -1,6 +1,6 @@
 {
   "summary": {
-    "overall_status": "warning",
+    "overall_status": "error",
     "n_replicas": 5,
     "n_issues": 2,
     "is_rest2": false,

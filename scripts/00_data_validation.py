@@ -39,29 +39,54 @@ FILE_SIZE_LIMITS = {
 REQUIRED_FILES = list(FILE_SIZE_LIMITS.keys())
 
 
-def check_directory_structure(data_dir='data', expected_replicas=5):
+def check_directory_structure(data_dir='data', expected_replicas=None):
     """
-    检查副本目录结构
+    检查副本目录结构（支持自动发现）
+
+    Args:
+        data_dir: 数据目录路径
+        expected_replicas: 期望的副本数量，None表示自动适应实际数量
 
     Returns:
         dict: {
             'found': list of found replica dirs,
             'missing': list of missing replica dirs,
-            'status': 'ok' or 'error'
+            'status': 'ok', 'warning', or 'error'
+            'expected': int,
+            'actual': int
         }
     """
+    data_path = Path(data_dir)
+
+    # 自动发现所有rep_*目录
+    found_dirs = sorted([d.name for d in data_path.iterdir()
+                        if d.is_dir() and d.name.startswith('rep_')
+                        and d.name.split('_')[1].isdigit()])
+
+    if not found_dirs:
+        return {
+            'found': [],
+            'missing': [],
+            'status': 'error',
+            'expected': expected_replicas or 0,
+            'actual': 0,
+            'message': '未找到任何rep_*目录'
+        }
+
+    # 如果未指定期望数量，从找到的目录推断（假设rep_0到rep_N连续）
+    if expected_replicas is None:
+        indices = [int(d.split('_')[1]) for d in found_dirs]
+        max_idx = max(indices)
+        expected_replicas = max_idx + 1
+
     expected_dirs = [f'rep_{i}' for i in range(expected_replicas)]
-    found_dirs = []
-    missing_dirs = []
+    missing_dirs = [d for d in expected_dirs if d not in found_dirs]
 
-    for rep_dir in expected_dirs:
-        rep_path = Path(data_dir) / rep_dir
-        if rep_path.is_dir():
-            found_dirs.append(rep_dir)
-        else:
-            missing_dirs.append(rep_dir)
-
-    status = 'ok' if len(missing_dirs) == 0 else 'error'
+    # 缺失副本降级为warning，允许继续验证剩余副本
+    if missing_dirs:
+        status = 'warning'
+    else:
+        status = 'ok'
 
     return {
         'found': found_dirs,
@@ -213,7 +238,7 @@ def validate_edr_file(edr_path):
 
 def validate_xtc_file(xtc_path, gro_path):
     """
-    验证 XTC 文件格式
+    验证 XTC 文件格式（轻量级：只读取头信息）
 
     Returns:
         dict: {
@@ -226,12 +251,18 @@ def validate_xtc_file(xtc_path, gro_path):
     """
     try:
         import mdtraj as md
-        # mdtraj需要GRO文件作为拓扑，不支持TPR
-        traj = md.load(str(xtc_path), top=str(gro_path))
+        from mdtraj.formats import XTCTrajectoryFile
+
+        # 只加载第一帧验证格式和原子数（避免加载整个轨迹）
+        traj = md.load(str(xtc_path), top=str(gro_path), frame=0)
+
+        # 使用XTCTrajectoryFile获取总帧数（不加载数据）
+        with XTCTrajectoryFile(str(xtc_path)) as f:
+            n_frames = len(f)
 
         return {
             'readable': True,
-            'n_frames': traj.n_frames,
+            'n_frames': n_frames,
             'n_atoms': traj.n_atoms,
             'status': 'ok',
             'error': None
@@ -323,11 +354,12 @@ def main():
         print()
 
     if dir_check['missing']:
-        print(f"  {RED}缺失: {', '.join(dir_check['missing'])}{RESET}")
+        print(f"  {YELLOW}缺失: {', '.join(dir_check['missing'])}{RESET}")
     print()
 
+    # 只有完全没有副本才终止
     if dir_check['status'] == 'error':
-        print(f"{RED}致命错误: 副本目录不完整，无法继续验证{RESET}")
+        print(f"{RED}致命错误: {dir_check.get('message', '未找到任何副本目录')}{RESET}")
         return 1
 
     # ===== 步骤 2: 检查文件完整性 =====
@@ -416,29 +448,30 @@ def main():
 
     print()
 
-    # ===== 生成摘要 =====
-    print(f"{BOLD}{'='*60}{RESET}")
-    print(f"{BOLD}验证摘要{RESET}")
-    print(f"{BOLD}{'='*60}{RESET}")
-
+    # ===== 统计文件完整性和格式验证问题 =====
     # 统计状态
     n_ok = sum(1 for v in file_checks.values() if v['status'] == 'ok')
     n_warning = sum(1 for v in file_checks.values() if v['status'] == 'warning')
     n_error = sum(1 for v in file_checks.values() if v['status'] == 'error')
 
-    overall_status = 'error' if n_error > 0 else ('warning' if n_warning > 0 else 'ok')
+    # 统计格式验证问题
+    format_errors = 0
+    format_warnings = 0
+    for rep, validations in format_validations.items():
+        for file_type, result in validations.items():
+            if result['status'] == 'error':
+                format_errors += 1
+            elif result['status'] == 'warning':
+                format_warnings += 1
 
-    print(f"状态: {print_status_symbol(overall_status)} ", end='')
-    if overall_status == 'ok':
-        print(f"{GREEN}通过{RESET}")
-    elif overall_status == 'warning':
-        print(f"{YELLOW}通过（有警告）{RESET}")
+    # 初步计算状态（仅基于文件完整性和格式验证）
+    # 注意: 最终状态将在 Lambda 和多状态能量验证后确定
+    if n_error > 0 or format_errors > 0:
+        overall_status = 'error'
+    elif n_warning > 0 or format_warnings > 0:
+        overall_status = 'warning'
     else:
-        print(f"{RED}失败{RESET}")
-
-    print(f"副本数: {dir_check['actual']}/{dir_check['expected']}")
-    print(f"警告: {n_warning} 个")
-    print(f"错误: {n_error} 个")
+        overall_status = 'ok'
 
     # Lambda 参数验证
     print()
@@ -540,6 +573,18 @@ def main():
                 'message': f"文件问题: {', '.join(problem_files)}"
             })
 
+    # 检查格式验证问题
+    for rep, validations in format_validations.items():
+        for file_type, result in validations.items():
+            if result['status'] == 'error':
+                issues.append({
+                    'type': 'format_validation',
+                    'replica': rep,
+                    'file': file_type,
+                    'severity': 'error',
+                    'message': f"{file_type.upper()}无法读取: {result.get('error', 'Unknown error')}"
+                })
+
     # 检查Lambda问题
     if has_replica_lambda_all:
         if len(set(replica_lambda_values.values())) == 1:
@@ -563,6 +608,25 @@ def main():
             'message': "缺少MBAR所需的多状态能量列",
             'solution': "使用 gmx mdrun -rerun 重新计算"
         })
+        # 多状态能量缺失是致命问题，设为error
+        overall_status = 'error'
+
+    # ===== 打印最终验证摘要 =====
+    print()
+    print(f"{BOLD}{'='*60}{RESET}")
+    print(f"{BOLD}验证摘要{RESET}")
+    print(f"{BOLD}{'='*60}{RESET}")
+
+    print(f"状态: {print_status_symbol(overall_status)} ", end='')
+    if overall_status == 'ok':
+        print(f"{GREEN}通过{RESET}")
+    elif overall_status == 'warning':
+        print(f"{YELLOW}通过（有警告）{RESET}")
+    else:
+        print(f"{RED}失败{RESET}")
+
+    print(f"副本数: {dir_check['actual']}/{dir_check['expected']}")
+    print(f"问题数: {len(issues)}")
 
     # 构建简化报告
     report_data = {
@@ -589,8 +653,11 @@ def main():
     print()
     print(f"详细报告已保存至: {report_path}")
 
-    # 返回状态码
-    return 0 if overall_status in ['ok', 'warning'] else 1
+    # 返回状态码：error返回1，warning和ok返回0
+    if overall_status == 'error':
+        return 1
+    else:
+        return 0
 
 
 if __name__ == '__main__':
