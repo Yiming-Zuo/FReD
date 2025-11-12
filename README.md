@@ -5,16 +5,16 @@ FReD（Free-energy Reweighting and Dataset Builder） 是一个 Replica-Exchange
 ## 数据流动
 
 ```
-   原始数据                验证报告              MBAR输入             MBAR输出            训练数据集
-(GROMACS REST2)          (完整性检查)          (能量+映射)          (权重+诊断)        (坐标+能量)
-      ↓                      ↓                    ↓                   ↓                  ↓
-┌──────────────┐      ┌──────────────┐     ┌──────────────┐    ┌──────────────┐   ┌──────────────┐
-│  prod.edr    │      │ Lambda检测    │     │  u_kn矩阵    │    │  MBAR权重     │   │ coordinates  │
-│  prod.log    │  →   │ 文件完整性     │  →  │  N_k数组     │ →  │  自由能曲线    │ → │  energies    │
-│  prod.xtc    │      │ MBAR就绪      │     │  状态映射     │    │  overlap矩阵  │   │  box向量     │
-└──────────────┘      └──────────────┘     └──────────────┘    └──────────────┘   └──────────────┘
-    data/rep_*              00                     01                 02                  03
-                    data_validation         prepare_mbar          run_mbar      build_training_dataset
+   原始数据              验证报告            MBAR输入        子采样+MBAR          训练数据集
+(GROMACS REST2)        (完整性检查)        (能量矩阵)         (重加权)           (坐标+能量)
+      ↓                    ↓                  ↓                 ↓                  ↓
+┌──────────────┐    ┌──────────────┐   ┌──────────────┐  ┌──────────────┐   ┌──────────────┐
+│  prod.edr    │    │ Lambda检测    │   │  u_kn矩阵     │  │ MBAR权重     │   │ coordinates  │
+│  prod.log    │ →  │ 文件完整性     │ → │  N_k数组      │→ │ overlap诊断  │ → │  energies    │
+│  prod.xtc    │    │ MBAR就绪      │   │ lambda值     │  │ ESS检查       │   │  box向量     │
+└──────────────┘    └──────────────┘   └──────────────┘  └──────────────┘   └──────────────┘
+    data/rep_*            00                 01               02                  03
+                  data_validation     prepare_mbar        run_mbar      build_training_dataset
 ```
 
 ## 项目结构
@@ -106,7 +106,7 @@ cd notebooks/
 jupyter notebook 01_quick_start.ipynb
 ```
 
-## 5. 数据格式
+## 数据格式
 
 ### mbar_input.npz
 ```python
@@ -120,7 +120,7 @@ lambda_values: (n_states,)          # Lambda参数
 ```python
 coordinates: (n_samples, n_atoms, 3)  # 坐标 [nm]
 energies: (n_samples,)                # 能量 [kJ/mol]
-box: (n_samples, 3, 3)                # 盒子向量 [nm]
+box: (n_samples, 3, 3)                # 周期性边界条件盒子向量 [nm]
 original_indices: (n_samples, 2)      # 数据来源追溯
 ```
 
