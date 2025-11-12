@@ -97,12 +97,20 @@ def subsample_all_states(u_kn: np.ndarray,
     """
     对所有状态的能量时间序列进行子采样
 
+    重要：此函数要求u_kn已经按状态分组，即：
+    - u_kn[:, 0:N_k[0]] 是状态0的所有样本
+    - u_kn[:, N_k[0]:N_k[0]+N_k[1]] 是状态1的所有样本
+    - 以此类推
+
+    如果u_kn是按副本组织的，必须先调用reorganize_u_kn_by_state()重组。
+
     Parameters
     ----------
     u_kn : np.ndarray
-        shape=(n_states, n_samples_total) 能量矩阵
+        shape=(n_states, n_samples_total) 能量矩阵（按状态分组）
+        列顺序：[state0的N_k[0]个样本 | state1的N_k[1]个样本 | ...]
     N_k : np.ndarray
-        shape=(n_states,) 每个状态的样本数
+        shape=(n_states,) 每个状态的真实样本数
     method : str, optional
         子采样方法 ('auto' 或 'manual')
 
@@ -118,7 +126,18 @@ def subsample_all_states(u_kn: np.ndarray,
     """
     n_states = u_kn.shape[0]
 
-    # 分割每个状态的能量序列
+    # 验证输入：检查N_k总和是否等于样本总数
+    n_samples_total = u_kn.shape[1]
+    if N_k.sum() != n_samples_total:
+        raise ValueError(
+            f"N_k总和({N_k.sum()})与u_kn列数({n_samples_total})不一致！"
+            "请确保u_kn已按状态重组。"
+        )
+
+    logger.info(f"开始子采样 {n_states} 个状态")
+    logger.info(f"  每个状态的样本数 N_k: {N_k}")
+
+    # 分割每个状态的能量序列（按状态分组）
     u_k_list = []
     start_idx = 0
     for k, n_samples in enumerate(N_k):
