@@ -11,7 +11,7 @@ EDR文件快速检查工具
 5. 列出所有能量列
 
 使用方法：
-    conda activate femto_test
+    conda activate fred
     python scripts/tools/inspect_edr.py <edr_file> [options]
 
 参数：

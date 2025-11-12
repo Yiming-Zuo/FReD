@@ -11,7 +11,7 @@
 ## 运行测试
 
 ```bash
-conda activate femto_test
+conda activate fred
 
 # 运行所有测试
 python -m pytest tests/

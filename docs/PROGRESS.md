@@ -135,7 +135,7 @@
 
 ```bash
 # 激活环境
-source /opt/anaconda3/bin/activate femto_test
+source /opt/anaconda3/bin/activate fred
 
 # 步骤1: 数据验证
 python scripts/00_data_validation.py
@@ -261,7 +261,7 @@ seaborn (可选)       # 高级可视化
 
 ### 安装
 ```bash
-conda activate femto_test
+conda activate fred
 pip install panedr mdtraj pymbar matplotlib seaborn
 ```
 

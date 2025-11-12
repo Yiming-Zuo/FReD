@@ -10,7 +10,7 @@
 4. 显示盒子大小统计
 
 使用方法：
-    conda activate femto_test
+    conda activate fred
     python scripts/tools/analyze_trajectory.py <xtc_file> <topology> [options]
 
 参数：

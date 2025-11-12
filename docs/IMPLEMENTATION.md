@@ -1058,7 +1058,7 @@ MBAR输入数据准备脚本
 5. 保存MBAR输入数据
 
 使用方法：
-    conda activate femto_test
+    conda activate fred
     python scripts/01_prepare_mbar.py
 """
 
@@ -1195,7 +1195,7 @@ MBAR计算和诊断脚本
 6. 保存MBAR权重
 
 使用方法：
-    conda activate femto_test
+    conda activate fred
     python scripts/02_run_mbar.py
 """
 
@@ -1337,7 +1337,7 @@ if __name__ == '__main__':
 6. 保存训练数据集（NPZ格式）
 
 使用方法：
-    conda activate femto_test
+    conda activate fred
     python scripts/03_build_training_dataset.py
 """
 
@@ -1797,7 +1797,7 @@ seaborn
 
 **安装**:
 ```bash
-conda activate femto_test
+conda activate fred
 pip install panedr mdtraj pymbar matplotlib seaborn
 ```
 

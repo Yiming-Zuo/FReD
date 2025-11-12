@@ -10,7 +10,7 @@
 4. 生成数据摘要报告
 
 使用方法：
-    conda activate femto_test
+    conda activate fred
     python scripts/00_data_validation.py
 """
 

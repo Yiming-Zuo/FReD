@@ -10,7 +10,7 @@ LOG文件交换统计分析工具
 4. 显示前N次交换记录
 
 使用方法：
-    conda activate femto_test
+    conda activate fred
     python scripts/tools/inspect_log.py <log_file> [options]
 
 参数：

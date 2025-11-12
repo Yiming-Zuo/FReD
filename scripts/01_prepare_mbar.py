@@ -11,7 +11,7 @@ MBAR输入数据准备脚本
 5. 保存MBAR输入数据
 
 使用方法：
-    conda activate femto_test
+    conda activate fred
     python scripts/01_prepare_mbar.py
 """
 

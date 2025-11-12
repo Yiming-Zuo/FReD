@@ -12,7 +12,7 @@ MBAR计算和诊断脚本
 6. 保存MBAR权重和诊断报告
 
 使用方法：
-    conda activate femto_test
+    conda activate fred
     python scripts/02_run_mbar.py [--skip-subsample] [--target-state 0]
 
 参数：

@@ -12,7 +12,7 @@
 6. 保存训练数据集（NPZ格式）
 
 使用方法：
-    conda activate femto_test
+    conda activate fred
     python scripts/03_build_training_dataset.py [--n-samples 10000] [--compute-dihedrals]
 
 参数：

@@ -9,9 +9,9 @@ FReD（Free-energy Reweighting and Dataset Builder） 是一个 Replica-Exchange
 (GROMACS REST2)          (完整性检查)          (能量+映射)          (权重+诊断)        (坐标+能量)
       ↓                      ↓                    ↓                   ↓                  ↓
 ┌──────────────┐      ┌──────────────┐     ┌──────────────┐    ┌──────────────┐   ┌──────────────┐
-│  prod.edr    │      │ Lambda检测   │     │  u_kn矩阵    │    │  MBAR权重    │   │ coordinates  │
-│  prod.log    │  →   │ 文件完整性   │  →  │  N_k数组     │ →  │  自由能曲线  │ → │  energies    │
-│  prod.xtc    │      │ MBAR就绪     │     │  状态映射    │    │  overlap矩阵 │   │  box向量     │
+│  prod.edr    │      │ Lambda检测    │     │  u_kn矩阵    │    │  MBAR权重     │   │ coordinates  │
+│  prod.log    │  →   │ 文件完整性     │  →  │  N_k数组     │ →  │  自由能曲线    │ → │  energies    │
+│  prod.xtc    │      │ MBAR就绪      │     │  状态映射     │    │  overlap矩阵  │   │  box向量     │
 └──────────────┘      └──────────────┘     └──────────────┘    └──────────────┘   └──────────────┘
     data/rep_*              00                     01                 02                  03
                     data_validation         prepare_mbar          run_mbar      build_training_dataset
