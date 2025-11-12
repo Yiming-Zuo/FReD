@@ -136,7 +136,10 @@ def validate_edr_file(edr_path):
         dict: {
             'readable': bool,
             'n_steps': int,
-            'has_lambda': bool,
+            'has_replica_lambda': bool,  # 副本的Lambda标签
+            'replica_lambda_value': float or None,
+            'has_multistate_energy': bool,  # 多状态能量列（MBAR需要）
+            'multistate_energy_columns': list,
             'columns': list,
             'status': str,
             'error': str (if any)
@@ -144,21 +147,50 @@ def validate_edr_file(edr_path):
     """
     try:
         import panedr
+        import numpy as np
         df = panedr.edr_to_df(str(edr_path))
 
         # 检查关键列
         required_cols = ['Time', 'Potential']
         has_required = all(col in df.columns for col in required_cols)
 
-        # 检查是否有Lambda相关列
-        lambda_cols = [col for col in df.columns if 'Lambda' in col or 'lambda' in col or 'dH' in col]
-        has_lambda = len(lambda_cols) > 0
+        # 1. 检查副本Lambda标签（Lamb-SOL, Lamb-UNL等）
+        replica_lambda_col = None
+        replica_lambda_value = None
+
+        if 'Lamb-SOL' in df.columns:
+            replica_lambda_col = 'Lamb-SOL'
+        elif 'Lamb-UNL' in df.columns:
+            replica_lambda_col = 'Lamb-UNL'
+        elif 'Lambda' in df.columns:
+            replica_lambda_col = 'Lambda'
+
+        if replica_lambda_col:
+            replica_lambda_value = float(df[replica_lambda_col].iloc[0])
+
+        has_replica_lambda = replica_lambda_col is not None
+
+        # 2. 检查多状态能量列（MBAR需要的）
+        # 这些列通常命名为: dH/dl, Energy-lambda-0, Energy-lambda-1 等
+        multistate_cols = []
+
+        # 搜索可能的多状态能量列模式
+        for col in df.columns:
+            # 常见模式：dH/dl, dE/dl, Energy-lambda, U-lambda等
+            if any(pattern in col for pattern in ['dH/dl', 'dE/dl', 'Energy-lambda', 'U-lambda', 'Energy-Lambda']):
+                multistate_cols.append(col)
+
+        has_multistate_energy = len(multistate_cols) > 0
 
         return {
             'readable': True,
             'n_steps': len(df),
-            'has_lambda': has_lambda,
-            'lambda_columns': lambda_cols if has_lambda else [],
+            'has_replica_lambda': has_replica_lambda,
+            'replica_lambda_column': replica_lambda_col,
+            'replica_lambda_value': replica_lambda_value,
+            'has_multistate_energy': has_multistate_energy,
+            'multistate_energy_columns': multistate_cols,
+            'n_multistate_cols': len(multistate_cols),
             'columns': list(df.columns),
             'status': 'ok' if has_required else 'warning',
             'error': None if has_required else 'Missing required columns'
@@ -167,8 +199,12 @@ def validate_edr_file(edr_path):
         return {
             'readable': False,
             'n_steps': 0,
-            'has_lambda': False,
-            'lambda_columns': [],
+            'has_replica_lambda': False,
+            'replica_lambda_column': None,
+            'replica_lambda_value': None,
+            'has_multistate_energy': False,
+            'multistate_energy_columns': [],
+            'n_multistate_cols': 0,
             'columns': [],
             'status': 'error',
             'error': str(e)
@@ -331,10 +367,23 @@ def main():
         validations['edr'] = edr_result
 
         if edr_result['readable']:
-            lambda_status = f"包含 Lambda 列" if edr_result['has_lambda'] else "无 Lambda 列"
-            lambda_color = GREEN if edr_result['has_lambda'] else YELLOW
+            # 显示副本Lambda和多状态能量信息
+            info_parts = []
+
+            if edr_result['has_replica_lambda']:
+                lambda_val = edr_result['replica_lambda_value']
+                info_parts.append(f"λ={lambda_val:.3f}")
+
+            if edr_result['has_multistate_energy']:
+                n_states = edr_result['n_multistate_cols']
+                info_parts.append(f"{GREEN}{n_states}状态能量{RESET}")
+            else:
+                info_parts.append(f"{YELLOW}无多状态能量{RESET}")
+
+            info_str = ", ".join(info_parts)
+
             print(f"  [{rep_dir}/prod.edr] {print_status_symbol(edr_result['status'])} "
-                  f"可读取, {edr_result['n_steps']} 步, {lambda_color}{lambda_status}{RESET}")
+                  f"可读取, {edr_result['n_steps']} 步, {info_str}")
         else:
             print(f"  [{rep_dir}/prod.edr] {print_status_symbol('error')} "
                   f"{RED}无法读取: {edr_result['error']}{RESET}")
@@ -391,17 +440,79 @@ def main():
     print(f"警告: {n_warning} 个")
     print(f"错误: {n_error} 个")
 
-    # Lambda 能量列检查
-    has_lambda_all = all(format_validations[rep]['edr'].get('has_lambda', False)
-                         for rep in dir_check['found']
-                         if rep in format_validations)
+    # Lambda 参数验证
+    print()
+    print(f"{BOLD}Lambda 参数验证:{RESET}")
 
-    if not has_lambda_all:
-        print()
-        print(f"{YELLOW}⚠️  重要提示:{RESET}")
-        print(f"{YELLOW}  EDR 文件不包含 Lambda 能量列{RESET}")
-        print(f"{YELLOW}  MBAR 分析需要所有 lambda 状态的能量{RESET}")
-        print(f"{YELLOW}  建议: 使用 gmx mdrun -rerun 重新计算能量矩阵{RESET}")
+    replica_lambda_values = {}
+    has_replica_lambda_all = True
+    has_multistate_energy_all = True
+
+    for rep in dir_check['found']:
+        if rep in format_validations and 'edr' in format_validations[rep]:
+            edr_info = format_validations[rep]['edr']
+            if edr_info.get('has_replica_lambda'):
+                replica_lambda_values[rep] = edr_info.get('replica_lambda_value')
+            else:
+                has_replica_lambda_all = False
+
+            if not edr_info.get('has_multistate_energy'):
+                has_multistate_energy_all = False
+
+    # 1. 检查副本Lambda标签
+    print(f"\n{BOLD}(1) 副本Lambda标签:{RESET}")
+    if has_replica_lambda_all and replica_lambda_values:
+        unique_lambdas = set(replica_lambda_values.values())
+
+        if len(unique_lambdas) == 1:
+            lambda_val = list(unique_lambdas)[0]
+            print(f"{YELLOW}  ⚠️  所有副本的 Lambda 值都相同: {lambda_val:.3f}{RESET}")
+            print(f"{YELLOW}     可能的问题: REST2 设置不正确或数据有问题{RESET}")
+        else:
+            print(f"{GREEN}  ✓ 检测到 {len(unique_lambdas)} 个不同的 Lambda 值{RESET}")
+            for rep, lam_val in sorted(replica_lambda_values.items()):
+                print(f"    {rep}: λ = {lam_val:.3f}")
+    else:
+        print(f"{YELLOW}  ⚠️  部分或全部副本缺少 Lambda 标签{RESET}")
+
+    # 2. 检查多状态能量列（MBAR关键）
+    print(f"\n{BOLD}(2) 多状态能量列（MBAR必需）:{RESET}")
+    if has_multistate_energy_all:
+        # 检查每个副本的多状态能量列数量
+        n_states_list = []
+        for rep in dir_check['found']:
+            if rep in format_validations and 'edr' in format_validations[rep]:
+                n_states = format_validations[rep]['edr'].get('n_multistate_cols', 0)
+                n_states_list.append(n_states)
+
+        if len(set(n_states_list)) == 1:
+            n_states = n_states_list[0]
+            print(f"{GREEN}  ✓ 所有副本都包含 {n_states} 个状态的能量列{RESET}")
+            print(f"{GREEN}    可以进行 MBAR 分析{RESET}")
+        else:
+            print(f"{YELLOW}  ⚠️  不同副本的多状态能量列数量不一致{RESET}")
+            for rep in dir_check['found']:
+                if rep in format_validations:
+                    n = format_validations[rep]['edr'].get('n_multistate_cols', 0)
+                    print(f"    {rep}: {n} 列")
+    else:
+        print(f"{RED}  ✗ 缺少多状态能量列{RESET}")
+        print(f"{RED}    无法进行 MBAR 分析{RESET}")
+        print(f"{YELLOW}    建议: 使用 gmx mdrun -rerun 重新计算多状态能量矩阵{RESET}")
+        overall_status = 'warning' if overall_status == 'ok' else overall_status
+
+    # 3. 综合判断
+    print(f"\n{BOLD}(3) 模拟类型判断:{RESET}")
+    if has_replica_lambda_all and len(set(replica_lambda_values.values())) > 1:
+        if has_multistate_energy_all:
+            print(f"{GREEN}  ✓ 确认为 REST2 模拟，数据完整{RESET}")
+        else:
+            print(f"{YELLOW}  ⚠️  疑似 REST2 模拟，但缺少多状态能量{RESET}")
+    else:
+        if has_multistate_energy_all:
+            print(f"{YELLOW}  ⚠️  有多状态能量，但副本Lambda标签异常{RESET}")
+        else:
+            print(f"{YELLOW}  ⚠️  可能不是标准的 REST2 模拟{RESET}")
 
     # 保存JSON报告
     report_dir = Path('outputs')
@@ -411,12 +522,24 @@ def main():
         'directory_check': dir_check,
         'file_integrity': file_checks,
         'format_validation': format_validations,
+        'lambda_analysis': {
+            'replica_lambda': {
+                'has_all': has_replica_lambda_all,
+                'values': replica_lambda_values,
+                'n_unique': len(set(replica_lambda_values.values())) if replica_lambda_values else 0
+            },
+            'multistate_energy': {
+                'has_all': has_multistate_energy_all,
+                'n_states': n_states_list[0] if has_multistate_energy_all and n_states_list else 0
+            },
+            'is_rest2': has_replica_lambda_all and len(set(replica_lambda_values.values())) > 1 if replica_lambda_values else False,
+            'is_mbar_ready': has_multistate_energy_all
+        },
         'summary': {
             'overall_status': overall_status,
             'n_ok': n_ok,
             'n_warning': n_warning,
             'n_error': n_error,
-            'has_lambda_energy': has_lambda_all
         }
     }
 
