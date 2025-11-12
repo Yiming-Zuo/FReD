@@ -18,29 +18,33 @@ pip install -r requirements.txt
 
 **重要**: 本项目必须使用 `femto_test` conda 环境运行所有 Python 代码和测试。
 
-在 Claude Code 中执行 Python 脚本或测试时，需要通过以下方式激活 conda 环境:
+由于 Claude Code 的 shell 环境未自动初始化 conda，需要先激活 conda 后再执行命令：
 
 ```bash
-# 运行 Python 脚本
-conda run -n femto_test python scripts/00_data_validation.py
+# 方式 1: 使用 conda run（需要先初始化）
+source /opt/anaconda3/bin/activate && conda run -n femto_test python scripts/00_data_validation.py
+
+# 方式 2: 直接激活环境（推荐，更简洁）
+source /opt/anaconda3/bin/activate femto_test && python scripts/00_data_validation.py
 
 # 运行测试
-conda run -n femto_test pytest tests/ -v
+source /opt/anaconda3/bin/activate femto_test && pytest tests/ -v
 
 # 运行单个测试文件
-conda run -n femto_test pytest tests/test_edr_parser.py -v
+source /opt/anaconda3/bin/activate femto_test && pytest tests/test_edr_parser.py -v
 
 # 安装新依赖
-conda run -n femto_test pip install <package_name>
+source /opt/anaconda3/bin/activate femto_test && pip install <package_name>
 ```
 
 **不要使用**:
 - ❌ `python scripts/xxx.py` (会使用系统 Python)
 - ❌ `pytest tests/` (会使用错误的环境)
+- ❌ `conda run -n femto_test python scripts/xxx.py` (conda 未初始化，会报错)
 
 **正确使用**:
-- ✅ `conda run -n femto_test python scripts/xxx.py`
-- ✅ `conda run -n femto_test pytest tests/`
+- ✅ `source /opt/anaconda3/bin/activate femto_test && python scripts/xxx.py`
+- ✅ `source /opt/anaconda3/bin/activate femto_test && pytest tests/`
 
 ### 核心依赖
 - **panedr** (>=0.7.0): 读取 GROMACS EDR 文件
@@ -52,34 +56,40 @@ conda run -n femto_test pip install <package_name>
 
 ### 完整工作流
 ```bash
+# 激活环境（所有命令前都需要）
+source /opt/anaconda3/bin/activate femto_test
+
 # 1. 数据验证
-conda run -n femto_test python scripts/00_data_validation.py
+python scripts/00_data_validation.py
 
 # 2. 提取能量矩阵
-conda run -n femto_test python scripts/01_extract_energies.py
+python scripts/01_extract_energies.py
 
 # 3. 解析副本交换（如果需要）
-conda run -n femto_test python scripts/02_parse_exchanges.py
+python scripts/02_parse_exchanges.py
 
 # 4. 构建 MBAR 数据集
-conda run -n femto_test python scripts/03_build_dataset.py
+python scripts/03_build_dataset.py
 
 # 5. MBAR 重加权分析
-conda run -n femto_test python scripts/04_mbar_analysis.py
+python scripts/04_mbar_analysis.py
 
 # 6. 轨迹分析
-conda run -n femto_test python scripts/05_trajectory_analysis.py
+python scripts/05_trajectory_analysis.py
 ```
 
 ### 测试
 ```bash
+# 激活环境
+source /opt/anaconda3/bin/activate femto_test
+
 # 运行所有测试
-conda run -n femto_test pytest tests/ -v
+pytest tests/ -v
 
 # 运行单个测试
-conda run -n femto_test pytest tests/test_edr_parser.py -v
-conda run -n femto_test pytest tests/test_log_parser.py -v
-conda run -n femto_test pytest tests/test_mbar.py -v
+pytest tests/test_edr_parser.py -v
+pytest tests/test_log_parser.py -v
+pytest tests/test_mbar.py -v
 ```
 
 ## 代码架构

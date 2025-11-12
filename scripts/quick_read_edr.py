@@ -69,7 +69,7 @@ def quick_read(edr_path):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        edr_file = '/Users/yiming/projects/rest2/data/rep_0/prod.edr'
+        edr_file = '/Users/yiming/projects/rest2/FRED/data/rep_2/prod.edr'
         print("未指定文件，使用默认路径")
     else:
         edr_file = sys.argv[1]
