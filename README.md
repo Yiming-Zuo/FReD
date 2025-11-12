@@ -99,7 +99,14 @@ python scripts/tools/inspect_log.py data/rep_0/prod.log --n-replicas 5
 python scripts/tools/analyze_trajectory.py data/rep_0/prod.xtc data/rep_0/prod.gro --rmsd --rg
 ```
 
-## 数据格式
+### 4. 交互式教程
+
+```bash
+cd notebooks/
+jupyter notebook 01_quick_start.ipynb
+```
+
+## 5. 数据格式
 
 ### mbar_input.npz
 ```python
