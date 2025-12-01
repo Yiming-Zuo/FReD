@@ -99,9 +99,9 @@ def main():
             print(f"{RED}{'='*60}{RESET}")
             return 1
 
-        print(f"\n{GREEN}✓ 数据验证通过{RESET}")
+        print(f"\n{GREEN}[OK] 数据验证通过{RESET}")
     else:
-        print(f"{GREEN}✓ 发现验证报告: {validation_report_path}{RESET}")
+        print(f"{GREEN}[OK] 发现验证报告: {validation_report_path}{RESET}")
 
     # 2. 准备MBAR输入
     print(f"\n{BOLD}准备MBAR输入数据...{RESET}\n")
@@ -134,7 +134,7 @@ def main():
         n_states=mbar_input['n_states']
     )
 
-    print(f"{GREEN}✓ 数据已保存{RESET}")
+    print(f"{GREEN}[OK] 数据已保存{RESET}")
 
     # 4. 显示统计
     print_statistics(mbar_input)
@@ -143,15 +143,15 @@ def main():
     if mbar_input.get('warnings'):
         print(f"\n{YELLOW}警告信息:{RESET}")
         for warning in mbar_input['warnings']:
-            print(f"  {YELLOW}⚠  {warning}{RESET}")
+            print(f"  {YELLOW}[WARN]  {warning}{RESET}")
 
     # 6. 成功完成
     print(f"\n{GREEN}{'='*60}{RESET}")
-    print(f"{GREEN}✓ MBAR输入数据准备完成{RESET}")
+    print(f"{GREEN}[OK] MBAR输入数据准备完成{RESET}")
     print(f"{GREEN}{'='*60}{RESET}")
-    print(f"\n📁 输出文件: {output_path}")
-    print(f"📊 数据大小: {output_path.stat().st_size / 1024:.2f} KB")
-    print(f"\n➡️  下一步: 运行 python scripts/02_run_mbar.py")
+    print(f"\n[FILE] 输出文件: {output_path}")
+    print(f"[DATA] 数据大小: {output_path.stat().st_size / 1024:.2f} KB")
+    print(f"\n->  下一步: 运行 python scripts/02_run_mbar.py")
 
     return 0
 

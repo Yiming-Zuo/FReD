@@ -172,7 +172,7 @@ def main():
     try:
         mbar_weights_data = io.load_mbar_weights(weights_path)
         weights = mbar_weights_data['weights']
-        print(f"{GREEN}✓ 权重加载成功{RESET}")
+        print(f"{GREEN}[OK] 权重加载成功{RESET}")
         print(f"  权重形状: {weights.shape}")
     except Exception as e:
         print(f"{RED}错误: 权重加载失败 - {e}{RESET}")
@@ -190,7 +190,7 @@ def main():
         replica_indices = mbar_input['replica_indices']
         cycle_indices = mbar_input['cycle_indices']
         n_replicas = mbar_input['n_replicas']
-        print(f"{GREEN}✓ MBAR输入加载成功{RESET}")
+        print(f"{GREEN}[OK] MBAR输入加载成功{RESET}")
         print(f"  副本数: {n_replicas}")
     except Exception as e:
         print(f"{RED}错误: MBAR输入加载失败 - {e}{RESET}")
@@ -211,7 +211,7 @@ def main():
         edr_paths = [str(data_dir / rep / 'prod.edr') for rep in replica_dirs]
         top_path = str(data_dir / replica_dirs[0] / 'prod.gro')
 
-        print(f"{GREEN}✓ 文件路径准备完成{RESET}")
+        print(f"{GREEN}[OK] 文件路径准备完成{RESET}")
         print(f"  副本目录: {', '.join(replica_dirs)}")
         print(f"  拓扑文件: {top_path}")
     except Exception as e:
@@ -241,7 +241,7 @@ def main():
             compute_dihedrals=args.compute_dihedrals,
             random_seed=args.random_seed
         )
-        print(f"\n{GREEN}✓ 数据集构建完成{RESET}")
+        print(f"\n{GREEN}[OK] 数据集构建完成{RESET}")
     except Exception as e:
         print(f"\n{RED}错误: 数据集构建失败 - {e}{RESET}")
         logger.exception("数据集构建失败")
@@ -275,7 +275,7 @@ def main():
 
         io.save_training_dataset_npz(output_path, **save_data)
 
-        print(f"{GREEN}✓ 数据集已保存{RESET}")
+        print(f"{GREEN}[OK] 数据集已保存{RESET}")
     except Exception as e:
         print(f"{RED}错误: 数据集保存失败 - {e}{RESET}")
         logger.exception("数据集保存失败")
@@ -295,28 +295,28 @@ def main():
         analysis = resampling.analyze_resampling_efficiency(
             weights, resampled_indices
         )
-        print(f"{GREEN}✓ 效率分析完成{RESET}")
+        print(f"{GREEN}[OK] 效率分析完成{RESET}")
     except Exception as e:
-        print(f"{YELLOW}⚠ 效率分析失败: {e}{RESET}")
+        print(f"{YELLOW}[WARN] 效率分析失败: {e}{RESET}")
         logger.exception("效率分析失败")
 
     # ========== 7. 成功完成 ==========
     print(f"\n{GREEN}{'='*60}{RESET}")
-    print(f"{GREEN}✓ 训练数据集构建完成{RESET}")
+    print(f"{GREEN}[OK] 训练数据集构建完成{RESET}")
     print(f"{GREEN}{'='*60}{RESET}")
 
     file_size_mb = output_path.stat().st_size / (1024**2)
-    print(f"\n📁 输出文件:")
+    print(f"\n[FILE] 输出文件:")
     print(f"  - 数据集文件: {output_path} ({file_size_mb:.2f} MB)")
     print(f"  - 数据格式: NPZ (NumPy压缩格式)")
 
-    print(f"\n📊 数据集内容:")
+    print(f"\n[DATA] 数据集内容:")
     print(f"  - 样本数: {dataset['n_samples']}")
     print(f"  - 原子数: {dataset['n_atoms']}")
     print(f"  - 坐标: {dataset['coordinates'].shape}")
     print(f"  - 能量: {dataset['energies'].shape}")
 
-    print(f"\n✨ 数据集可用于生成模型（如FreeFlow）训练")
+    print(f"\n[NEW] 数据集可用于生成模型（如FreeFlow）训练")
 
     return 0
 

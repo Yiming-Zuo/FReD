@@ -35,11 +35,11 @@ BOLD = '\033[1m'
 def print_status_symbol(status):
     """打印状态符号"""
     if status == 'ok':
-        return f"{GREEN}✓{RESET}"
+        return f"{GREEN}[OK]{RESET}"
     elif status == 'warning':
-        return f"{YELLOW}⚠{RESET}"
+        return f"{YELLOW}[WARN]{RESET}"
     elif status == 'error' or status == 'missing':
-        return f"{RED}✗{RESET}"
+        return f"{RED}[FAIL]{RESET}"
     else:
         return "?"
 
@@ -51,7 +51,7 @@ def main():
     print(f"{BOLD}{'='*60}{RESET}")
     print()
 
-    data_dir = Path('data')
+    data_dir = Path('data_0')
     if not data_dir.exists():
         print(f"{RED}错误: data/ 目录不存在{RESET}")
         return 1
@@ -161,23 +161,23 @@ def main():
     if lambda_analysis['has_replica_lambda_all'] and lambda_analysis['replica_lambda_values']:
         if lambda_analysis['n_unique_lambdas'] == 1:
             lambda_val = lambda_analysis['unique_lambdas'][0]
-            print(f"{YELLOW}  ⚠️  所有副本的 Lambda 值都相同: {lambda_val:.3f}{RESET}")
+            print(f"{YELLOW}  [WARN]  所有副本的 Lambda 值都相同: {lambda_val:.3f}{RESET}")
             print(f"{YELLOW}     可能的问题: REST2 设置不正确或数据有问题{RESET}")
         else:
-            print(f"{GREEN}  ✓ 检测到 {lambda_analysis['n_unique_lambdas']} 个不同的 Lambda 值{RESET}")
+            print(f"{GREEN}  [OK] 检测到 {lambda_analysis['n_unique_lambdas']} 个不同的 Lambda 值{RESET}")
             for rep, lam_val in sorted(lambda_analysis['replica_lambda_values'].items()):
                 print(f"    {rep}: λ = {lam_val:.3f}")
     else:
-        print(f"{YELLOW}  ⚠️  部分或全部副本缺少 Lambda 标签{RESET}")
+        print(f"{YELLOW}  [WARN]  部分或全部副本缺少 Lambda 标签{RESET}")
 
     # 2. 多状态能量列
     print(f"\n{BOLD}(2) 多状态能量列（MBAR必需）:{RESET}")
     if lambda_analysis['has_multistate_energy_all']:
         n_states = lambda_analysis['n_multistate_cols']
-        print(f"{GREEN}  ✓ 所有副本都包含 {n_states} 个状态的能量列{RESET}")
+        print(f"{GREEN}  [OK] 所有副本都包含 {n_states} 个状态的能量列{RESET}")
         print(f"{GREEN}    可以进行 MBAR 分析{RESET}")
     else:
-        print(f"{RED}  ✗ 缺少多状态能量列{RESET}")
+        print(f"{RED}  [FAIL] 缺少多状态能量列{RESET}")
         print(f"{RED}    无法进行 MBAR 分析{RESET}")
         print(f"{YELLOW}    建议: 使用 gmx mdrun -rerun 重新计算多状态能量矩阵{RESET}")
 
@@ -185,14 +185,14 @@ def main():
     print(f"\n{BOLD}(3) 模拟类型判断:{RESET}")
     if lambda_analysis['is_rest2']:
         if lambda_analysis['is_mbar_ready']:
-            print(f"{GREEN}  ✓ 确认为 REST2 模拟，数据完整{RESET}")
+            print(f"{GREEN}  [OK] 确认为 REST2 模拟，数据完整{RESET}")
         else:
-            print(f"{YELLOW}  ⚠️  疑似 REST2 模拟，但缺少多状态能量{RESET}")
+            print(f"{YELLOW}  [WARN]  疑似 REST2 模拟，但缺少多状态能量{RESET}")
     else:
         if lambda_analysis['has_multistate_energy_all']:
-            print(f"{YELLOW}  ⚠️  有多状态能量，但副本Lambda标签异常{RESET}")
+            print(f"{YELLOW}  [WARN]  有多状态能量，但副本Lambda标签异常{RESET}")
         else:
-            print(f"{YELLOW}  ⚠️  可能不是标准的 REST2 模拟{RESET}")
+            print(f"{YELLOW}  [WARN]  可能不是标准的 REST2 模拟{RESET}")
 
     # ===== 保存JSON报告 =====
     report_dir = Path('outputs')

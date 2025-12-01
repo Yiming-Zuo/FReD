@@ -242,7 +242,7 @@ def run_mbar(u_kn: np.ndarray,
     # 初始化MBAR
     try:
         mbar = MBAR(u_kn, N_k, **default_kwargs)
-        logger.info("✓ MBAR初始化成功")
+        logger.info("[OK] MBAR初始化成功")
     except Exception as e:
         logger.error(f"MBAR初始化失败: {e}")
         raise
@@ -252,7 +252,7 @@ def run_mbar(u_kn: np.ndarray,
     try:
         all_weights = mbar.W_nk  # shape=(n_samples_total, n_states)
         weights = all_weights[:, target_state]  # shape=(n_samples_total,)
-        logger.info(f"✓ 计算目标状态{target_state}的权重")
+        logger.info(f"[OK] 计算目标状态{target_state}的权重")
         logger.info(f"  权重范围: [{weights.min():.2e}, {weights.max():.2e}]")
         logger.info(f"  权重总和: {weights.sum():.6f}")
     except Exception as e:
@@ -366,9 +366,9 @@ def compute_diagnostics(mbar) -> Dict:
     diagnostics['warnings'] = warnings
 
     if is_converged:
-        logger.info("✓ MBAR计算收敛，无警告")
+        logger.info("[OK] MBAR计算收敛，无警告")
     else:
-        logger.warning(f"⚠ MBAR计算完成，但有 {len(warnings)} 个警告")
+        logger.warning(f"[WARN] MBAR计算完成，但有 {len(warnings)} 个警告")
 
     return diagnostics
 

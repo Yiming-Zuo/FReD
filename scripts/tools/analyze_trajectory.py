@@ -249,7 +249,7 @@ def main():
 
     try:
         traj = io.load_trajectory(str(xtc_file), str(topology), stride=args.stride)
-        print(f"{GREEN}✓ 轨迹加载成功{RESET}")
+        print(f"{GREEN}[OK] 轨迹加载成功{RESET}")
     except Exception as e:
         print(f"{RED}错误: 轨迹加载失败 - {e}{RESET}")
         return 1
@@ -272,7 +272,7 @@ def main():
                     import mdtraj as md
                     try:
                         reference = md.load(str(ref_path))
-                        print(f"\n{GREEN}✓ 参考结构加载成功: {ref_path}{RESET}")
+                        print(f"\n{GREEN}[OK] 参考结构加载成功: {ref_path}{RESET}")
                     except Exception as e:
                         print(f"{YELLOW}警告: 参考结构加载失败 - {e}{RESET}")
                         print(f"{YELLOW}使用第0帧作为参考{RESET}")

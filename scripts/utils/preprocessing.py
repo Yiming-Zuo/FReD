@@ -40,7 +40,7 @@ def detect_lambda_states(edr_df: pd.DataFrame) -> List[float]:
     """
     从EDR DataFrame检测Lambda状态索引
 
-    ⚠️  重要：此函数返回Lambda状态的索引（0, 1, 2, ...），而不是真实的λ值。
+    [WARN]  重要：此函数返回Lambda状态的索引（0, 1, 2, ...），而不是真实的λ值。
     要获取真实的λ值或温度，需要从tpr文件或mdp文件中读取。
 
     Parameters
@@ -72,7 +72,7 @@ def detect_lambda_states(edr_df: pd.DataFrame) -> List[float]:
 
     logger.info(f"检测到 {n_states} 个Lambda状态（返回索引，非真实λ值）")
     logger.warning(
-        "⚠️ 返回的是Lambda状态索引 [0, 1, 2, ...]，不是真实的λ值或温度。"
+        "[WARN] 返回的是Lambda状态索引 [0, 1, 2, ...]，不是真实的λ值或温度。"
     )
 
     return lambda_values
@@ -263,7 +263,7 @@ def extract_energy_matrix(data_dir: Union[str, Path] = 'data',
     N_k = np.full(n_states, n_samples_total // n_states, dtype=int)
 
     warnings_list.append(
-        "⚠️ 能量矩阵当前按副本组织，N_k为占位符。"
+        "[WARN] 能量矩阵当前按副本组织，N_k为占位符。"
         "必须调用reorganize_u_kn_by_state()重新组织为按状态分组。"
     )
 
@@ -623,7 +623,7 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
                 )
                 raise ValueError("不同副本的LOG文件包含不同数量的交换记录")
 
-        logger.info(f"✓ LOG文件一致性验证通过（检查了{n_to_check}个副本）")
+        logger.info(f"[OK] LOG文件一致性验证通过（检查了{n_to_check}个副本）")
     else:
         logger.warning("只有一个副本，跳过LOG一致性验证")
 
@@ -648,7 +648,7 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
     u_kn_correct = reorganized['u_kn']
     N_k_correct = reorganized['N_k']
 
-    logger.info(f"✓ u_kn重组完成")
+    logger.info(f"[OK] u_kn重组完成")
     logger.info(f"  原N_k (错误): {energy_data['N_k']}")
     logger.info(f"  新N_k (正确): {N_k_correct}")
 
@@ -774,9 +774,9 @@ def verify_data_consistency(u_kn: np.ndarray,
     is_consistent = len(issues) == 0
 
     if is_consistent:
-        logger.info("✓ 数据一致性检查通过")
+        logger.info("[OK] 数据一致性检查通过")
     else:
-        logger.error("✗ 数据一致性检查失败")
+        logger.error("[FAIL] 数据一致性检查失败")
         for issue in issues:
             logger.error(f"  - {issue}")
 
@@ -887,7 +887,7 @@ def reorganize_u_kn_by_state(u_kn_by_replica: np.ndarray,
 
             current_col += n_samples_in_state
 
-    logger.info("✓ u_kn矩阵重组完成")
+    logger.info("[OK] u_kn矩阵重组完成")
     logger.info(f"  新u_kn shape: {u_kn_by_state.shape}")
     logger.info(f"  列顺序: [state0的{N_k[0]}个样本 | state1的{N_k[1]}个样本 | ...]")
 

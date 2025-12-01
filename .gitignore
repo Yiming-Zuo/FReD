@@ -131,3 +131,4 @@ results/reports/*.txt
 results/reports/*.md
 
 data/*
+data_0/*

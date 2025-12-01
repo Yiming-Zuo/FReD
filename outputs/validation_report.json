@@ -2,11 +2,41 @@
   "summary": {
     "overall_status": "error",
     "n_replicas": 5,
-    "n_issues": 2,
+    "n_issues": 7,
     "is_rest2": false,
     "is_mbar_ready": false
   },
   "issues": [
+    {
+      "type": "file_integrity",
+      "replica": "rep_0",
+      "severity": "warning",
+      "message": "文件问题: prod.edr, prod.xtc, prod.log"
+    },
+    {
+      "type": "file_integrity",
+      "replica": "rep_1",
+      "severity": "warning",
+      "message": "文件问题: prod.edr, prod.xtc"
+    },
+    {
+      "type": "file_integrity",
+      "replica": "rep_2",
+      "severity": "warning",
+      "message": "文件问题: prod.edr, prod.xtc"
+    },
+    {
+      "type": "file_integrity",
+      "replica": "rep_3",
+      "severity": "warning",
+      "message": "文件问题: prod.edr, prod.xtc"
+    },
+    {
+      "type": "file_integrity",
+      "replica": "rep_4",
+      "severity": "warning",
+      "message": "文件问题: prod.edr, prod.xtc, prod.log"
+    },
     {
       "type": "lambda",
       "severity": "warning",

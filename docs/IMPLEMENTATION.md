@@ -3,7 +3,7 @@
 **项目名称**: FReD (Free-energy Reweighting and Dataset Builder)
 **版本**: v1.0.0
 **更新时间**: 2025-11-12
-**当前进度**: 100% (~5570/5570行代码) ✅ 全部完成
+**当前进度**: 100% (~5570/5570行代码) [OK] 全部完成
 
 ---
 
@@ -69,33 +69,33 @@ FReD/
 │   └── rep_1.../
 │
 ├── scripts/
-│   ├── 00_data_validation.py      ✅ 数据验证 (246行)
-│   ├── 01_prepare_mbar.py         ✅ MBAR输入准备 (150行)
-│   ├── 02_run_mbar.py             ✅ MBAR计算 (307行)
-│   ├── 03_build_training_dataset.py ✅ 训练集构建 (230行)
+│   ├── 00_data_validation.py      [OK] 数据验证 (246行)
+│   ├── 01_prepare_mbar.py         [OK] MBAR输入准备 (150行)
+│   ├── 02_run_mbar.py             [OK] MBAR计算 (307行)
+│   ├── 03_build_training_dataset.py [OK] 训练集构建 (230行)
 │   │
-│   ├── tools/                     ✅ 辅助工具
+│   ├── tools/                     [OK] 辅助工具
 │   │   ├── __init__.py
-│   │   ├── inspect_edr.py         ✅ EDR检查 (252行)
-│   │   ├── inspect_log.py         ✅ LOG分析 (244行)
-│   │   └── analyze_trajectory.py  ✅ 轨迹分析 (276行)
+│   │   ├── inspect_edr.py         [OK] EDR检查 (252行)
+│   │   ├── inspect_log.py         [OK] LOG分析 (244行)
+│   │   └── analyze_trajectory.py  [OK] 轨迹分析 (276行)
 │   │
 │   └── utils/                     # 核心工具库
-│       ├── __init__.py            ✅
-│       ├── validation.py          ✅ 617行
-│       ├── io.py                  ✅ 300行
-│       ├── preprocessing.py       ✅ 600行
-│       ├── mbar.py                ✅ 450行
-│       ├── visualization.py       ✅ 480行
-│       └── resampling.py          ✅ 420行
+│       ├── __init__.py            [OK]
+│       ├── validation.py          [OK] 617行
+│       ├── io.py                  [OK] 300行
+│       ├── preprocessing.py       [OK] 600行
+│       ├── mbar.py                [OK] 450行
+│       ├── visualization.py       [OK] 480行
+│       └── resampling.py          [OK] 420行
 │
 ├── outputs/                       # 输出目录
-│   ├── validation_report.json     ✅ 00输出
-│   ├── mbar_input.npz             ✅ 01输出
-│   ├── mbar_weights.npz           ✅ 02输出
-│   ├── mbar_diagnostics.json      ✅ 02输出
-│   ├── training_dataset.npz       ✅ 03输出
-│   └── figures/                   ✅ 02输出
+│   ├── validation_report.json     [OK] 00输出
+│   ├── mbar_input.npz             [OK] 01输出
+│   ├── mbar_weights.npz           [OK] 02输出
+│   ├── mbar_diagnostics.json      [OK] 02输出
+│   ├── training_dataset.npz       [OK] 03输出
+│   └── figures/                   [OK] 02输出
 │       ├── overlap_matrix.png
 │       ├── free_energy_profile.png
 │       ├── weights_distribution.png
@@ -103,12 +103,12 @@ FReD/
 │       └── subsample_diagnostics.png
 │
 ├── docs/
-│   ├── IMPLEMENTATION.md          ✅ 本文档
-│   └── PROGRESS.md                ✅ 进度报告
+│   ├── IMPLEMENTATION.md          [OK] 本文档
+│   └── PROGRESS.md                [OK] 进度报告
 │
 ├── README.md                      ⏳ 需更新
-├── CLAUDE.md                      ✅ 项目配置
-└── requirements.txt               ✅ 依赖列表
+├── CLAUDE.md                      [OK] 项目配置
+└── requirements.txt               [OK] 依赖列表
 ```
 
 ### 模块依赖关系
@@ -258,7 +258,7 @@ graph TD
 
 ## 已完成模块
 
-### ✅ utils/validation.py (617行)
+### [OK] utils/validation.py (617行)
 
 **功能**: 完整的数据验证系统
 
@@ -318,7 +318,7 @@ def run_full_validation(data_dir, expected_replicas=None) -> Dict
 
 ---
 
-### ✅ utils/io.py (300行)
+### [OK] utils/io.py (300行)
 
 **功能**: 统一文件读写接口
 
@@ -397,7 +397,7 @@ def load_training_dataset_npz(input_path) -> Dict
 
 ---
 
-### ✅ utils/preprocessing.py (600行)
+### [OK] utils/preprocessing.py (600行)
 
 **功能**: 能量提取、交换解析、状态映射
 
@@ -1131,7 +1131,7 @@ def main():
             print(f"{RED}数据验证失败，请先修复错误{RESET}")
             return 1
     else:
-        print(f"{GREEN}✓ 发现验证报告: {validation_report_path}{RESET}")
+        print(f"{GREEN}[OK] 发现验证报告: {validation_report_path}{RESET}")
 
     # 2. 准备MBAR输入
     print(f"\n{BLUE}准备MBAR输入数据...{RESET}")
@@ -1165,7 +1165,7 @@ def main():
 
     # 5. 成功完成
     print(f"\n{GREEN}{'='*60}{RESET}")
-    print(f"{GREEN}✓ MBAR输入数据准备完成{RESET}")
+    print(f"{GREEN}[OK] MBAR输入数据准备完成{RESET}")
     print(f"{GREEN}{'='*60}{RESET}")
     print(f"\n下一步: 运行 python scripts/02_run_mbar.py")
 
@@ -1256,7 +1256,7 @@ def main():
 
     try:
         mbar_obj, weights = mbar.run_mbar(u_kn_sub, N_k_sub, target_state=0)
-        print(f"{GREEN}✓ MBAR计算完成{RESET}")
+        print(f"{GREEN}[OK] MBAR计算完成{RESET}")
     except Exception as e:
         print(f"{RED}MBAR计算失败: {e}{RESET}")
         return 1
@@ -1279,7 +1279,7 @@ def main():
         output_dir=str(figures_dir),
         lambda_values=lambda_values
     )
-    print(f"{GREEN}✓ 诊断图表已保存到: {figures_dir}{RESET}")
+    print(f"{GREEN}[OK] 诊断图表已保存到: {figures_dir}{RESET}")
 
     # 6. 保存MBAR权重
     weights_path = output_dir / 'mbar_weights.npz'
@@ -1303,11 +1303,11 @@ def main():
             'warnings': diagnostics['warnings']
         }, f, indent=2)
 
-    print(f"{GREEN}✓ 诊断报告已保存到: {diagnostics_path}{RESET}")
+    print(f"{GREEN}[OK] 诊断报告已保存到: {diagnostics_path}{RESET}")
 
     # 7. 成功完成
     print(f"\n{GREEN}{'='*60}{RESET}")
-    print(f"{GREEN}✓ MBAR计算和诊断完成{RESET}")
+    print(f"{GREEN}[OK] MBAR计算和诊断完成{RESET}")
     print(f"{GREEN}{'='*60}{RESET}")
     print(f"\n下一步: 运行 python scripts/03_build_training_dataset.py")
 
@@ -1389,7 +1389,7 @@ def main():
         weights, n_target_samples, method='multinomial'
     )
 
-    print(f"{GREEN}✓ 重采样完成{RESET}")
+    print(f"{GREEN}[OK] 重采样完成{RESET}")
 
     # 3. 准备文件路径
     from utils import validation
@@ -1408,7 +1408,7 @@ def main():
         mbar_input['replica_indices'],
         mbar_input['cycle_indices']
     )
-    print(f"{GREEN}✓ 构象提取完成: {coordinates.shape}{RESET}")
+    print(f"{GREEN}[OK] 构象提取完成: {coordinates.shape}{RESET}")
 
     # 5. 提取还原势能
     print(f"\n{BLUE}提取还原势能...{RESET}")
@@ -1419,7 +1419,7 @@ def main():
         mbar_input['cycle_indices'],
         target_state=0
     )
-    print(f"{GREEN}✓ 势能提取完成: {energies.shape}{RESET}")
+    print(f"{GREEN}[OK] 势能提取完成: {energies.shape}{RESET}")
 
     # 6. 保存训练数据集
     output_path = output_dir / 'training_dataset.npz'
@@ -1447,7 +1447,7 @@ def main():
 
     # 8. 成功完成
     print(f"\n{GREEN}{'='*60}{RESET}")
-    print(f"{GREEN}✓ 训练数据集构建完成{RESET}")
+    print(f"{GREEN}[OK] 训练数据集构建完成{RESET}")
     print(f"{GREEN}{'='*60}{RESET}")
     print(f"\n数据集已保存至: {output_path}")
     print(f"可用于生成模型（如FreeFlow）训练")
@@ -1690,7 +1690,7 @@ def resample_by_weights(weights, n_samples):
 ### 总体进度
 
 ```
-█████████████████████████  100% (~5570/5570行) ✅ 全部完成
+█████████████████████████  100% (~5570/5570行) [OK] 全部完成
 ```
 
 ### 模块完成度
@@ -1698,24 +1698,24 @@ def resample_by_weights(weights, n_samples):
 | 模块 | 状态 | 行数 | 完成度 |
 |------|------|------|--------|
 | **Utils模块** | | | **100%** |
-| validation.py | ✅ 完成 | 617 | 100% |
-| io.py | ✅ 完成 | 300 | 100% |
-| preprocessing.py | ✅ 完成 | 600 | 100% |
-| mbar.py | ✅ 完成 | 450 | 100% |
-| visualization.py | ✅ 完成 | 480 | 100% |
-| resampling.py | ✅ 完成 | 420 | 100% |
+| validation.py | [OK] 完成 | 617 | 100% |
+| io.py | [OK] 完成 | 300 | 100% |
+| preprocessing.py | [OK] 完成 | 600 | 100% |
+| mbar.py | [OK] 完成 | 450 | 100% |
+| visualization.py | [OK] 完成 | 480 | 100% |
+| resampling.py | [OK] 完成 | 420 | 100% |
 | **主脚本** | | | **100%** |
-| 00_data_validation.py | ✅ 完成 | 246 | 100% |
-| 01_prepare_mbar.py | ✅ 完成 | 150 | 100% |
-| 02_run_mbar.py | ✅ 完成 | 307 | 100% |
-| 03_build_training_dataset.py | ✅ 完成 | 230 | 100% |
+| 00_data_validation.py | [OK] 完成 | 246 | 100% |
+| 01_prepare_mbar.py | [OK] 完成 | 150 | 100% |
+| 02_run_mbar.py | [OK] 完成 | 307 | 100% |
+| 03_build_training_dataset.py | [OK] 完成 | 230 | 100% |
 | **工具脚本** | | | **100%** |
-| inspect_edr.py | ✅ 完成 | 252 | 100% |
-| inspect_log.py | ✅ 完成 | 244 | 100% |
-| analyze_trajectory.py | ✅ 完成 | 276 | 100% |
+| inspect_edr.py | [OK] 完成 | 252 | 100% |
+| inspect_log.py | [OK] 完成 | 244 | 100% |
+| analyze_trajectory.py | [OK] 完成 | 276 | 100% |
 | **文档** | | | **100%** |
-| IMPLEMENTATION.md | ✅ 完成 | 1790 | 100% |
-| PROGRESS.md | ✅ 完成 | 387 | 100% |
+| IMPLEMENTATION.md | [OK] 完成 | 1790 | 100% |
+| PROGRESS.md | [OK] 完成 | 387 | 100% |
 | README.md | ⏳ 需更新 | - | 0% |
 
 ### 代码统计
@@ -1724,29 +1724,29 @@ def resample_by_weights(weights, n_samples):
 已完成: ~5570行
 总计:   ~5570行
 
-当前完成度: 100% ✅
+当前完成度: 100% [OK]
 ```
 
 ---
 
 ## 下一步计划
 
-### ✅ 已完成（本轮对话）
+### [OK] 已完成（本轮对话）
 
-1. ✅ 更新IMPLEMENTATION.md为完整项目总览
-2. ✅ 实现01_prepare_mbar.py主脚本
-3. ✅ 实现utils/mbar.py核心模块
-4. ✅ 实现utils/visualization.py可视化模块
-5. ✅ 实现02_run_mbar.py主脚本
-6. ✅ 实现utils/resampling.py重采样模块
-7. ✅ 实现03_build_training_dataset.py主脚本
-8. ✅ 创建PROGRESS.md进度报告
-9. ✅ 实现tools/inspect_edr.py工具
-10. ✅ 实现tools/inspect_log.py工具
-11. ✅ 实现tools/analyze_trajectory.py工具
-12. ✅ 清理旧版本脚本
+1. [OK] 更新IMPLEMENTATION.md为完整项目总览
+2. [OK] 实现01_prepare_mbar.py主脚本
+3. [OK] 实现utils/mbar.py核心模块
+4. [OK] 实现utils/visualization.py可视化模块
+5. [OK] 实现02_run_mbar.py主脚本
+6. [OK] 实现utils/resampling.py重采样模块
+7. [OK] 实现03_build_training_dataset.py主脚本
+8. [OK] 创建PROGRESS.md进度报告
+9. [OK] 实现tools/inspect_edr.py工具
+10. [OK] 实现tools/inspect_log.py工具
+11. [OK] 实现tools/analyze_trajectory.py工具
+12. [OK] 清理旧版本脚本
 
-### 🎯 后续工作（可选）
+### [TARGET] 后续工作（可选）
 
 #### 优先级P1（高）
 - ⏳ **真实数据测试**：使用实际GROMACS REST2数据测试完整工作流
@@ -1804,5 +1804,5 @@ pip install panedr mdtraj pymbar matplotlib seaborn
 ---
 
 **文档完成时间**: 2025-11-12
-**项目状态**: ✅ 全部完成（100%）
+**项目状态**: [OK] 全部完成（100%）
 **下次更新**: 真实数据测试后

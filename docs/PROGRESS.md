@@ -8,35 +8,35 @@
 
 ## 执行摘要
 
-✅ **项目全部完成**：核心工作流 + 辅助工具 全部实现
+[OK] **项目全部完成**：核心工作流 + 辅助工具 全部实现
 
 ---
 
 ## 模块完成状态
 
-### ✅ 已完成模块（10个utils/tools + 4个主脚本）
+### [OK] 已完成模块（10个utils/tools + 4个主脚本）
 
 | 模块 | 行数 | 状态 | 功能 |
 |------|------|------|------|
 | **Utils库（6个）** | | | |
-| `validation.py` | 617 | ✅ 完成 | 完整数据验证系统 |
-| `io.py` | 300 | ✅ 完成 | 统一文件I/O接口（NPZ格式） |
-| `preprocessing.py` | 600 | ✅ 完成 | 能量提取、交换解析、状态映射 |
-| `mbar.py` | 450 | ✅ 完成 | MBAR核心计算、诊断、子采样 |
-| `visualization.py` | 480 | ✅ 完成 | 完整诊断可视化套件 |
-| `resampling.py` | 420 | ✅ 完成 | 重采样、构象提取、特征计算 |
+| `validation.py` | 617 | [OK] 完成 | 完整数据验证系统 |
+| `io.py` | 300 | [OK] 完成 | 统一文件I/O接口（NPZ格式） |
+| `preprocessing.py` | 600 | [OK] 完成 | 能量提取、交换解析、状态映射 |
+| `mbar.py` | 450 | [OK] 完成 | MBAR核心计算、诊断、子采样 |
+| `visualization.py` | 480 | [OK] 完成 | 完整诊断可视化套件 |
+| `resampling.py` | 420 | [OK] 完成 | 重采样、构象提取、特征计算 |
 | **工具脚本（3个）** | | | |
-| `inspect_edr.py` | 252 | ✅ 完成 | EDR文件检查、MBAR就绪检测 |
-| `inspect_log.py` | 244 | ✅ 完成 | LOG交换分析、迁移统计 |
-| `analyze_trajectory.py` | 276 | ✅ 完成 | 轨迹分析、RMSD、回旋半径 |
+| `inspect_edr.py` | 252 | [OK] 完成 | EDR文件检查、MBAR就绪检测 |
+| `inspect_log.py` | 244 | [OK] 完成 | LOG交换分析、迁移统计 |
+| `analyze_trajectory.py` | 276 | [OK] 完成 | 轨迹分析、RMSD、回旋半径 |
 | **主脚本（4个）** | | | |
-| `00_data_validation.py` | 246 | ✅ 完成 | 数据验证主入口 |
-| `01_prepare_mbar.py` | 150 | ✅ 完成 | MBAR输入数据准备 |
-| `02_run_mbar.py` | 307 | ✅ 完成 | MBAR计算和诊断 |
-| `03_build_training_dataset.py` | 230 | ✅ 完成 | 训练数据集构建 |
+| `00_data_validation.py` | 246 | [OK] 完成 | 数据验证主入口 |
+| `01_prepare_mbar.py` | 150 | [OK] 完成 | MBAR输入数据准备 |
+| `02_run_mbar.py` | 307 | [OK] 完成 | MBAR计算和诊断 |
+| `03_build_training_dataset.py` | 230 | [OK] 完成 | 训练数据集构建 |
 | **文档（2个）** | | | |
-| `IMPLEMENTATION.md` | 1790 | ✅ 完成 | 完整技术文档 |
-| `PROGRESS.md` | 本文档 | ✅ 完成 | 进度报告 |
+| `IMPLEMENTATION.md` | 1790 | [OK] 完成 | 完整技术文档 |
+| `PROGRESS.md` | 本文档 | [OK] 完成 | 进度报告 |
 
 **总计**: ~5570行核心代码 + 1790行技术文档
 
@@ -46,22 +46,22 @@
 
 ### 1. 数据验证 (`00_data_validation.py`)
 
-✅ 自动发现副本目录
-✅ 文件完整性检查（EDR, XTC, LOG, TPR, GRO）
-✅ 格式验证（panedr, mdtraj）
-✅ Lambda参数分析
-✅ 多状态能量列检测
-✅ REST2模拟类型判断
-✅ JSON报告输出
+[OK] 自动发现副本目录
+[OK] 文件完整性检查（EDR, XTC, LOG, TPR, GRO）
+[OK] 格式验证（panedr, mdtraj）
+[OK] Lambda参数分析
+[OK] 多状态能量列检测
+[OK] REST2模拟类型判断
+[OK] JSON报告输出
 
 ### 2. MBAR输入准备 (`01_prepare_mbar.py`)
 
-✅ 多状态能量矩阵提取（支持多种列名模式）
-✅ 副本交换记录解析（正则表达式）
-✅ Replica→State映射重建
-✅ 交换统计计算
-✅ 数据一致性验证
-✅ NPZ格式保存
+[OK] 多状态能量矩阵提取（支持多种列名模式）
+[OK] 副本交换记录解析（正则表达式）
+[OK] Replica→State映射重建
+[OK] 交换统计计算
+[OK] 数据一致性验证
+[OK] NPZ格式保存
 
 **关键算法**：
 - EDR列名模式匹配（4种模式）
@@ -70,61 +70,61 @@
 
 ### 3. MBAR计算 (`02_run_mbar.py`)
 
-✅ 子采样去相关（pymbar timeseries）
+[OK] 子采样去相关（pymbar timeseries）
   - `detect_equilibration()` - 检测平衡化时间
   - `subsample_correlated_data()` - 子采样独立样本
   - 支持全状态批量子采样
 
-✅ MBAR核心计算（pymbar 4.x）
+[OK] MBAR核心计算（pymbar 4.x）
   - 支持自定义迭代次数和收敛容限
   - 目标状态权重计算
 
-✅ 诊断分析
+[OK] 诊断分析
   - Overlap矩阵（检测状态重叠）
   - 有效样本数（ESS）
   - 自由能曲线（带不确定度）
   - 收敛性判断
 
-✅ 可视化输出
+[OK] 可视化输出
   - Overlap热图（支持seaborn）
   - 自由能曲线（带误差棒）
   - 权重分布直方图
   - 能量时间序列
   - 子采样诊断图
 
-✅ 命令行参数
+[OK] 命令行参数
   - `--skip-subsample` - 跳过子采样
   - `--target-state` - 指定目标状态
   - `--max-iter` - MBAR最大迭代
 
 ### 4. 训练集构建 (`03_build_training_dataset.py`)
 
-✅ MBAR权重重采样
+[OK] MBAR权重重采样
   - 多项式抽样（multinomial）
   - 系统重采样（systematic）
   - 可重复性支持（random seed）
 
-✅ 构象提取（mdtraj）
+[OK] 构象提取（mdtraj）
   - 从XTC提取坐标
   - 盒子向量提取
   - 批量处理优化
 
-✅ 势能提取
+[OK] 势能提取
   - 目标状态能量（λ=1, 300K）
   - EDR缓存优化
 
-✅ 辅助特征计算
+[OK] 辅助特征计算
   - φ/ψ主链二面角
   - χ1侧链二面角
   - 可选计算
 
-✅ NPZ格式保存
+[OK] NPZ格式保存
   - coordinates: (n_samples, n_atoms, 3) float32
   - energies: (n_samples,) float32
   - box: (n_samples, 3, 3) float32
   - phi, psi, chi1: 二面角数据
 
-✅ 效率分析
+[OK] 效率分析
   - 唯一样本比例
   - 有效样本数（ESS）
   - 重复采样统计
@@ -308,7 +308,7 @@ pip install panedr mdtraj pymbar matplotlib seaborn
 
 ## 总结
 
-### ✅ 已完成
+### [OK] 已完成
 
 - **完整工作流**：从GROMACS REST2输出到生成模型训练数据
 - **核心算法**：能量提取、交换解析、MBAR重加权、重采样
@@ -316,16 +316,16 @@ pip install panedr mdtraj pymbar matplotlib seaborn
 - **数据格式**：标准化的NPZ格式，易于加载和使用
 - **技术文档**：详细的IMPLEMENTATION.md（1790行）
 
-### 🎯 项目状态
+### [TARGET] 项目状态
 
 **生产就绪**：核心功能已完全实现，可用于实际数据处理
 
-### 📚 使用方法
+### [DOC] 使用方法
 
 参考[IMPLEMENTATION.md](IMPLEMENTATION.md)获取完整技术细节和API文档
 
 ---
 
 **最后更新**: 2025-11-12
-**状态**: ✅ 核心功能完成（99%）
+**状态**: [OK] 核心功能完成（99%）
 **下一步**: 真实数据测试和性能优化

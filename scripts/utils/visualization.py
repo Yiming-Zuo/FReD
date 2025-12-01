@@ -110,7 +110,7 @@ def plot_overlap_matrix(overlap: np.ndarray,
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-    logger.info(f"✓ Overlap矩阵图已保存: {output_path}")
+    logger.info(f"[OK] Overlap矩阵图已保存: {output_path}")
 
 
 def plot_free_energy_profile(f_k: np.ndarray,
@@ -168,7 +168,7 @@ def plot_free_energy_profile(f_k: np.ndarray,
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-    logger.info(f"✓ 自由能曲线图已保存: {output_path}")
+    logger.info(f"[OK] 自由能曲线图已保存: {output_path}")
 
 
 def plot_weights_distribution(weights: np.ndarray,
@@ -228,7 +228,7 @@ def plot_weights_distribution(weights: np.ndarray,
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-    logger.info(f"✓ 权重分布图已保存: {output_path}")
+    logger.info(f"[OK] 权重分布图已保存: {output_path}")
 
 
 def plot_energy_timeseries(u_kn: np.ndarray,
@@ -296,7 +296,7 @@ def plot_energy_timeseries(u_kn: np.ndarray,
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-    logger.info(f"✓ 能量时间序列图已保存: {output_path}")
+    logger.info(f"[OK] 能量时间序列图已保存: {output_path}")
 
 
 def plot_subsample_diagnostics(subsample_info: List[dict],
@@ -369,7 +369,7 @@ def plot_subsample_diagnostics(subsample_info: List[dict],
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-    logger.info(f"✓ 子采样诊断图已保存: {output_path}")
+    logger.info(f"[OK] 子采样诊断图已保存: {output_path}")
 
 
 def plot_all_diagnostics(mbar,
@@ -442,7 +442,7 @@ def plot_all_diagnostics(mbar,
             str(output_path / 'subsample_diagnostics.png')
         )
 
-    logger.info("✓ 所有诊断图表生成完成")
+    logger.info("[OK] 所有诊断图表生成完成")
 
 
 def plot_convergence_timeseries(f_k_history: List[np.ndarray],
@@ -495,4 +495,4 @@ def plot_convergence_timeseries(f_k_history: List[np.ndarray],
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-    logger.info(f"✓ 收敛曲线图已保存: {output_path}")
+    logger.info(f"[OK] 收敛曲线图已保存: {output_path}")

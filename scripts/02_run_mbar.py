@@ -82,20 +82,20 @@ def print_mbar_summary(mbar_obj, diagnostics: dict, weights: np.ndarray):
     if diagnostics['overlap_matrix'] is not None:
         min_overlap = diagnostics['min_overlap']
         if min_overlap >= 0.03:
-            status = f"{GREEN}✓{RESET}"
+            status = f"{GREEN}[OK]{RESET}"
         else:
-            status = f"{YELLOW}⚠{RESET}"
+            status = f"{YELLOW}[WARN]{RESET}"
         print(f"  {status} 最小相邻overlap: {min_overlap:.4f}")
     else:
-        print(f"  {RED}✗ Overlap矩阵计算失败{RESET}")
+        print(f"  {RED}[FAIL] Overlap矩阵计算失败{RESET}")
 
     # 有效样本数
     print(f"\n{BLUE}[4] 有效样本数{RESET}")
     ess = diagnostics['effective_sample_size']
     if ess >= 50:
-        status = f"{GREEN}✓{RESET}"
+        status = f"{GREEN}[OK]{RESET}"
     else:
-        status = f"{YELLOW}⚠{RESET}"
+        status = f"{YELLOW}[WARN]{RESET}"
     print(f"  {status} ESS: {ess:.1f}")
 
     # 权重统计
@@ -108,9 +108,9 @@ def print_mbar_summary(mbar_obj, diagnostics: dict, weights: np.ndarray):
     # 收敛性
     print(f"\n{BLUE}[6] 收敛性{RESET}")
     if diagnostics['is_converged']:
-        print(f"  {GREEN}✓ MBAR计算收敛{RESET}")
+        print(f"  {GREEN}[OK] MBAR计算收敛{RESET}")
     else:
-        print(f"  {YELLOW}⚠ 存在警告（见下方）{RESET}")
+        print(f"  {YELLOW}[WARN] 存在警告（见下方）{RESET}")
 
 
 def parse_args():
@@ -174,7 +174,7 @@ def main():
     print(f"{BLUE}[1/5] 加载MBAR输入数据...{RESET}")
     try:
         mbar_input = io.load_mbar_input(input_path)
-        print(f"{GREEN}✓ 数据加载成功{RESET}")
+        print(f"{GREEN}[OK] 数据加载成功{RESET}")
     except Exception as e:
         print(f"{RED}错误: 数据加载失败 - {e}{RESET}")
         logger.exception("数据加载失败")
@@ -205,11 +205,11 @@ def main():
             N_k_sub = subsample_result['N_k_sub']
             subsample_info = subsample_result['subsample_info']
 
-            print(f"{GREEN}✓ 子采样完成{RESET}")
+            print(f"{GREEN}[OK] 子采样完成{RESET}")
             print(f"  样本数: {u_kn.shape[1]} → {u_kn_sub.shape[1]}")
             print(f"  减少比例: {subsample_result['total_reduction']*100:.1f}%")
         except Exception as e:
-            print(f"{YELLOW}⚠ 子采样失败，使用原始数据: {e}{RESET}")
+            print(f"{YELLOW}[WARN] 子采样失败，使用原始数据: {e}{RESET}")
             logger.exception("子采样失败")
             u_kn_sub = u_kn
             N_k_sub = N_k
@@ -227,7 +227,7 @@ def main():
             maximum_iterations=args.max_iter,
             verbose=True
         )
-        print(f"{GREEN}✓ MBAR计算成功{RESET}")
+        print(f"{GREEN}[OK] MBAR计算成功{RESET}")
     except Exception as e:
         print(f"{RED}错误: MBAR计算失败 - {e}{RESET}")
         logger.exception("MBAR计算失败")
@@ -237,7 +237,7 @@ def main():
     print(f"\n{BLUE}[4/5] 计算诊断指标...{RESET}")
     try:
         diagnostics = mbar.compute_diagnostics(mbar_obj)
-        print(f"{GREEN}✓ 诊断计算完成{RESET}")
+        print(f"{GREEN}[OK] 诊断计算完成{RESET}")
     except Exception as e:
         print(f"{RED}错误: 诊断计算失败 - {e}{RESET}")
         logger.exception("诊断计算失败")
@@ -250,7 +250,7 @@ def main():
     if diagnostics['warnings']:
         print(f"\n{YELLOW}警告信息:{RESET}")
         for i, warning in enumerate(diagnostics['warnings'], 1):
-            print(f"  {YELLOW}⚠ {i}. {warning}{RESET}")
+            print(f"  {YELLOW}[WARN] {i}. {warning}{RESET}")
 
     # ========== 5. 生成诊断图表 ==========
     print(f"\n{BLUE}[5/5] 生成诊断图表...{RESET}")
@@ -261,9 +261,9 @@ def main():
             lambda_values=lambda_values,
             subsample_info=subsample_info
         )
-        print(f"{GREEN}✓ 诊断图表已保存到: {figures_dir}{RESET}")
+        print(f"{GREEN}[OK] 诊断图表已保存到: {figures_dir}{RESET}")
     except Exception as e:
-        print(f"{YELLOW}⚠ 图表生成失败: {e}{RESET}")
+        print(f"{YELLOW}[WARN] 图表生成失败: {e}{RESET}")
         logger.exception("图表生成失败")
 
     # ========== 6. 保存MBAR权重 ==========
@@ -287,7 +287,7 @@ def main():
             sample_indices=sample_indices,
             target_state=args.target_state
         )
-        print(f"{GREEN}✓ 权重已保存{RESET}")
+        print(f"{GREEN}[OK] 权重已保存{RESET}")
     except Exception as e:
         print(f"{RED}错误: 权重保存失败 - {e}{RESET}")
         logger.exception("权重保存失败")
@@ -316,23 +316,23 @@ def main():
         with open(diagnostics_path, 'w', encoding='utf-8') as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
 
-        print(f"{GREEN}✓ 诊断报告已保存{RESET}")
+        print(f"{GREEN}[OK] 诊断报告已保存{RESET}")
     except Exception as e:
-        print(f"{YELLOW}⚠ 诊断报告保存失败: {e}{RESET}")
+        print(f"{YELLOW}[WARN] 诊断报告保存失败: {e}{RESET}")
         logger.exception("诊断报告保存失败")
 
     # ========== 8. 成功完成 ==========
     print(f"\n{GREEN}{'='*60}{RESET}")
-    print(f"{GREEN}✓ MBAR计算和诊断完成{RESET}")
+    print(f"{GREEN}[OK] MBAR计算和诊断完成{RESET}")
     print(f"{GREEN}{'='*60}{RESET}")
 
     file_size_kb = weights_path.stat().st_size / 1024
-    print(f"\n📁 输出文件:")
+    print(f"\n[FILE] 输出文件:")
     print(f"  - 权重文件: {weights_path} ({file_size_kb:.2f} KB)")
     print(f"  - 诊断报告: {diagnostics_path}")
     print(f"  - 图表目录: {figures_dir}")
 
-    print(f"\n➡️  下一步: 运行 python scripts/03_build_training_dataset.py")
+    print(f"\n->  下一步: 运行 python scripts/03_build_training_dataset.py")
 
     return 0
 

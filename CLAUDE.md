@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 FReD（Free-energy Reweighting and Dataset Builder）是一个用于将 REST2-GROMACS 采样结果转换为无偏平衡系综的工具集，支持基于生成模型的自由能估计。
 
-**项目状态**: ⚠️ **核心逻辑已修复，待真实数据验证** (~5700行代码)
+**项目状态**: [WARN] **核心逻辑已修复，待真实数据验证** (~5700行代码)
 
 ## 开发环境
 
@@ -40,13 +40,13 @@ source /opt/anaconda3/bin/activate femto_test && pip install <package_name>
 ```
 
 **不要使用**:
-- ❌ `python scripts/xxx.py` (会使用系统 Python)
-- ❌ `pytest tests/` (会使用错误的环境)
-- ❌ `conda run -n femto_test python scripts/xxx.py` (conda 未初始化，会报错)
+- [FAIL] `python scripts/xxx.py` (会使用系统 Python)
+- [FAIL] `pytest tests/` (会使用错误的环境)
+- [FAIL] `conda run -n femto_test python scripts/xxx.py` (conda 未初始化，会报错)
 
 **正确使用**:
-- ✅ `source /opt/anaconda3/bin/activate femto_test && python scripts/xxx.py`
-- ✅ `source /opt/anaconda3/bin/activate femto_test && pytest tests/`
+- [OK] `source /opt/anaconda3/bin/activate femto_test && python scripts/xxx.py`
+- [OK] `source /opt/anaconda3/bin/activate femto_test && pytest tests/`
 
 ### 核心依赖
 - **panedr** (>=0.7.0): 读取 GROMACS EDR 文件
@@ -202,43 +202,43 @@ data/rep_* → 00_验证 → 01_准备 → 02_MBAR → 03_数据集 → 生成�
 
 ## 项目状态
 
-**当前阶段**: ⚠️ **核心逻辑已修复，待真实数据验证**
+**当前阶段**: [WARN] **核心逻辑已修复，待真实数据验证**
 
 ### 最近重大修复 (2025-11-12)
 
 修复了4个关键问题，确保MBAR计算的正确性：
 
-1. **✅ 修复u_kn/N_k逻辑（致命问题）**
+1. **[OK] 修复u_kn/N_k逻辑（致命问题）**
    - 问题：u_kn按"副本→时间"展开，N_k硬编码平均分配
    - 修复：添加`reorganize_u_kn_by_state()`函数，正确重组为按状态分组
    - 影响：修复前所有MBAR结果都不可信
    - 验证：通过5个单元测试验证重组逻辑正确性
 
-2. **✅ 添加LOG文件一致性验证**
+2. **[OK] 添加LOG文件一致性验证**
    - 问题：只读取一个副本的LOG，未验证其他副本
    - 修复：添加多副本LOG一致性检查
    - 影响：提高数据可靠性，及早发现问题
 
-3. **✅ 更新Lambda值文档**
+3. **[OK] 更新Lambda值文档**
    - 问题：`detect_lambda_states()`返回索引但文档说返回真实λ值
    - 修复：明确文档说明返回的是索引，添加警告信息
    - 影响：避免用户混淆
 
-4. **✅ 优化XTC读取性能**
+4. **[OK] 优化XTC读取性能**
    - 问题：每个样本重新打开XTC文件，性能极差
    - 修复：预加载所有副本轨迹到内存缓存
    - 影响：预计性能提升70%+（对1万样本）
 
 ### 已完成模块 (~5700行代码)
-- ✅ 数据验证系统 (validation.py, 617行)
-- ✅ 统一I/O接口 (io.py, 300行)
-- ✅ 预处理模块 (preprocessing.py, 800+行) ← 已修复
-- ✅ MBAR核心 (mbar.py, 450行) ← 已修复
-- ✅ 可视化套件 (visualization.py, 480行)
-- ✅ 重采样模块 (resampling.py, 450行) ← 已修复
-- ✅ 4个主脚本 (00-03, 共933行)
-- ✅ 3个工具脚本 (tools/, 共772行)
-- ✅ 单元测试 (tests/, 12个测试用例，全部通过)
+- [OK] 数据验证系统 (validation.py, 617行)
+- [OK] 统一I/O接口 (io.py, 300行)
+- [OK] 预处理模块 (preprocessing.py, 800+行) <- 已修复
+- [OK] MBAR核心 (mbar.py, 450行) <- 已修复
+- [OK] 可视化套件 (visualization.py, 480行)
+- [OK] 重采样模块 (resampling.py, 450行) <- 已修复
+- [OK] 4个主脚本 (00-03, 共933行)
+- [OK] 3个工具脚本 (tools/, 共772行)
+- [OK] 单元测试 (tests/, 12个测试用例，全部通过)
 
 **下一步**: 使用真实数据验证修复后的代码
 

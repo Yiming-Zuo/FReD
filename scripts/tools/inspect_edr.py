@@ -165,9 +165,9 @@ def show_lambda_info(df, show_multistate=True):
         print(f"{BOLD}{'='*60}{RESET}")
 
         if multistate['has_multistate']:
-            print(f"{GREEN}✓ 检测到 {multistate['n_states']} 个Lambda状态{RESET}")
-            print(f"{GREEN}✓ Lambda索引: {multistate['lambda_indices']}{RESET}")
-            print(f"{GREEN}✓ MBAR就绪: 是{RESET}")
+            print(f"{GREEN}[OK] 检测到 {multistate['n_states']} 个Lambda状态{RESET}")
+            print(f"{GREEN}[OK] Lambda索引: {multistate['lambda_indices']}{RESET}")
+            print(f"{GREEN}[OK] MBAR就绪: 是{RESET}")
 
             if len(multistate['columns']) <= 10:
                 print(f"\n  多状态能量列:")
@@ -178,8 +178,8 @@ def show_lambda_info(df, show_multistate=True):
                 print(f"    前5个: {', '.join(multistate['columns'][:5])}")
                 print(f"    后5个: {', '.join(multistate['columns'][-5:])}")
         else:
-            print(f"{RED}✗ 未检测到多状态能量列{RESET}")
-            print(f"{RED}✗ MBAR就绪: 否{RESET}")
+            print(f"{RED}[FAIL] 未检测到多状态能量列{RESET}")
+            print(f"{RED}[FAIL] MBAR就绪: 否{RESET}")
             print(f"{YELLOW}提示: 需要使用 gmx mdrun -rerun 重新计算多状态能量{RESET}")
 
 
@@ -271,16 +271,16 @@ def main():
         print(f"{'='*60}")
 
         if lambda_params:
-            print(f"{GREEN}✓ 检测到Lambda参数{RESET}")
+            print(f"{GREEN}[OK] 检测到Lambda参数{RESET}")
         else:
-            print(f"{YELLOW}⚠ 未检测到Lambda参数{RESET}")
+            print(f"{YELLOW}[WARN] 未检测到Lambda参数{RESET}")
 
         if multistate['has_multistate']:
-            print(f"{GREEN}✓ 检测到多状态能量 ({multistate['n_states']} 个状态){RESET}")
-            print(f"{GREEN}✓ MBAR就绪: 是{RESET}")
+            print(f"{GREEN}[OK] 检测到多状态能量 ({multistate['n_states']} 个状态){RESET}")
+            print(f"{GREEN}[OK] MBAR就绪: 是{RESET}")
         else:
-            print(f"{RED}✗ 未检测到多状态能量{RESET}")
-            print(f"{RED}✗ MBAR就绪: 否{RESET}")
+            print(f"{RED}[FAIL] 未检测到多状态能量{RESET}")
+            print(f"{RED}[FAIL] MBAR就绪: 否{RESET}")
 
     else:
         # 完整显示

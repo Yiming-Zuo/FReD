@@ -142,7 +142,7 @@ def extract_configurations(xtc_paths: List[str],
         logger.info(f"  加载副本{rep_id}: {xtc_path}")
         traj_cache[rep_id] = io.load_trajectory(xtc_path, top_path)
 
-    logger.info(f"✓ 所有轨迹已加载到内存")
+    logger.info(f"[OK] 所有轨迹已加载到内存")
 
     # 提取构象
     for i, sample_idx in enumerate(sample_indices):
@@ -174,7 +174,7 @@ def extract_configurations(xtc_paths: List[str],
     if extract_box:
         result['box'] = np.array(boxes, dtype=np.float32)  # (n_samples, 3, 3)
 
-    logger.info(f"✓ 构象提取完成: shape={coordinates.shape}")
+    logger.info(f"[OK] 构象提取完成: shape={coordinates.shape}")
 
     return result
 
@@ -269,7 +269,7 @@ def extract_unscaled_energies(edr_paths: List[str],
 
     energies = np.array(energies, dtype=np.float32)
 
-    logger.info(f"✓ 势能提取完成: shape={energies.shape}")
+    logger.info(f"[OK] 势能提取完成: shape={energies.shape}")
     logger.info(f"  能量范围: [{energies.min():.2e}, {energies.max():.2e}] kJ/mol")
 
     return energies
@@ -314,9 +314,9 @@ def compute_auxiliary_features(traj,
             phi_indices, phi_angles = md.compute_phi(traj)
             if len(phi_angles) > 0:
                 features['phi'] = phi_angles
-                logger.info(f"  ✓ φ二面角: {phi_angles.shape}")
+                logger.info(f"  [OK] φ二面角: {phi_angles.shape}")
         except Exception as e:
-            logger.warning(f"  ⚠ φ二面角计算失败: {e}")
+            logger.warning(f"  [WARN] φ二面角计算失败: {e}")
 
     # ψ二面角（主链）
     if compute_psi:
@@ -324,9 +324,9 @@ def compute_auxiliary_features(traj,
             psi_indices, psi_angles = md.compute_psi(traj)
             if len(psi_angles) > 0:
                 features['psi'] = psi_angles
-                logger.info(f"  ✓ ψ二面角: {psi_angles.shape}")
+                logger.info(f"  [OK] ψ二面角: {psi_angles.shape}")
         except Exception as e:
-            logger.warning(f"  ⚠ ψ二面角计算失败: {e}")
+            logger.warning(f"  [WARN] ψ二面角计算失败: {e}")
 
     # χ1侧链二面角
     if compute_chi1:
@@ -334,9 +334,9 @@ def compute_auxiliary_features(traj,
             chi1_indices, chi1_angles = md.compute_chi1(traj)
             if len(chi1_angles) > 0:
                 features['chi1'] = chi1_angles
-                logger.info(f"  ✓ χ1二面角: {chi1_angles.shape}")
+                logger.info(f"  [OK] χ1二面角: {chi1_angles.shape}")
         except Exception as e:
-            logger.warning(f"  ⚠ χ1二面角计算失败（可能不适用于此系统）: {e}")
+            logger.warning(f"  [WARN] χ1二面角计算失败（可能不适用于此系统）: {e}")
 
     return features
 

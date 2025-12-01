@@ -17,6 +17,30 @@ FReD（Free-energy Reweighting and Dataset Builder） 是一个 Replica-Exchange
                   data_validation     prepare_mbar        run_mbar      build_training_dataset
 ```
 
+```
+    溶质结构                   溶剂化+参数化+REST2缩放                      模拟输入文件                        平衡化+HREMD采样                       采样输出文件
+   ligand.pdb                    01_prepare_system                    (坐标+连接+作用)                     02_run_hremd_gpu                   (多副本轨迹+能量)
+        ↓                                ↓                                   ↓                                   ↓                                    ↓
+┌─────────────┐              ┌─────────────────────┐              ┌──────────────────┐              ┌─────────────────────┐              ┌──────────────────────┐
+│             │              │ [1] 溶剂化           │              │ system.pdb (构型) │              │ [1] 平衡化           │              │ samples.arrow  (能量) │
+│ 真空中的     │      →       │ [2] 参数化           │      →       │ topology.pkl(拓扑)│      →       │ [2] 温度梯度设计      │      →       │ r*.dcd         (轨迹) │
+│ 溶质坐标     │              │ [3] REST2缩放        │              │ system.xml (力场) │              │ [3] HREMD采样        │              │ checkpoint.pkl (断点) │
+└─────────────┘              └─────────────────────┘              └──────────────────┘              └─────────────────────┘              └──────────────────────┘
+1. 溶剂化（Solvation）
+	- 水模型：TIP3P
+	- 盒子：cube、10Å padding
+2. 参数化（Parameterization）
+	- 力场：Amber14
+	- 键、角、二面角
+	- 非键合：电荷、LJ参数
+3. REST2缩放（Scaling）
+	- 选择溶质分子
+	- 缩放二面角
+	- 缩放非键合
+	- 添加全局参数 bm_b0(二面角/非键合 × bm_b0)
+```
+
+
 ## 项目结构
 
 ```
