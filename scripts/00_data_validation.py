@@ -156,6 +156,15 @@ def main():
     # ===== Lambda 参数验证 =====
     print(f"{BOLD}Lambda 参数验证:{RESET}")
 
+    # 0. Lambda.dat 文件检查（新增）
+    if lambda_analysis.get('has_lambda_dat'):
+        lambda_values = lambda_analysis['lambda_values_from_file']
+        print(f"\n{BOLD}(0) Lambda 参数文件:{RESET}")
+        print(f"{GREEN}  [OK] 发现 lambda.dat 文件{RESET}")
+        print(f"    包含 {len(lambda_values)} 个状态的 Lambda 值:")
+        for i, lam in enumerate(lambda_values):
+            print(f"      状态{i}: λ = {lam:.10f}")
+
     # 1. 副本Lambda标签
     print(f"\n{BOLD}(1) 副本Lambda标签:{RESET}")
     if lambda_analysis['has_replica_lambda_all'] and lambda_analysis['replica_lambda_values']:
@@ -174,12 +183,22 @@ def main():
     print(f"\n{BOLD}(2) 多状态能量列（MBAR必需）:{RESET}")
     if lambda_analysis['has_multistate_energy_all']:
         n_states = lambda_analysis['n_multistate_cols']
-        print(f"{GREEN}  [OK] 所有副本都包含 {n_states} 个状态的能量列{RESET}")
+        print(f"{GREEN}  [OK] 所有副本都包含 {n_states} 个状态的能量列（EDR）{RESET}")
         print(f"{GREEN}    可以进行 MBAR 分析{RESET}")
     else:
-        print(f"{RED}  [FAIL] 缺少多状态能量列{RESET}")
-        print(f"{RED}    无法进行 MBAR 分析{RESET}")
-        print(f"{YELLOW}    建议: 使用 gmx mdrun -rerun 重新计算多状态能量矩阵{RESET}")
+        print(f"{RED}  [FAIL] EDR 文件缺少多状态能量列{RESET}")
+
+        # 检查是否有 XVG 替代数据源（新增）
+        if lambda_analysis.get('has_xvg_data'):
+            xvg_info = lambda_analysis['xvg_data_info']
+            n_xvg_files = len(xvg_info['xvg_files'])
+            print(f"{GREEN}  [OK] 找到替代数据源：rerun XVG 文件{RESET}")
+            print(f"    检测到 {n_xvg_files} 个 XVG 文件")
+            print(f"    副本数: {xvg_info['n_replicas']}, 状态数: {xvg_info['n_states']}")
+            print(f"{GREEN}    可以使用 --energy-source xvg 进行 MBAR 分析{RESET}")
+        else:
+            print(f"{RED}    无法进行 MBAR 分析{RESET}")
+            print(f"{YELLOW}    建议: 使用 gmx mdrun -rerun 重新计算多状态能量矩阵{RESET}")
 
     # 3. 模拟类型判断
     print(f"\n{BOLD}(3) 模拟类型判断:{RESET}")

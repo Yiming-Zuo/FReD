@@ -336,6 +336,78 @@ def validate_log_file(log_path: Union[str, Path]) -> Dict:
         }
 
 
+def read_lambda_dat(data_dir: Union[str, Path]) -> Optional[List[float]]:
+    """
+    从 lambda.dat 文件读取真实的 λ 值
+
+    Parameters
+    ----------
+    data_dir : str or Path
+        数据目录路径
+
+    Returns
+    -------
+    lambda_values : list of float or None
+        Lambda 值列表，如果文件不存在则返回 None
+    """
+    data_path = Path(data_dir)
+    lambda_file = data_path / 'lambda.dat'
+
+    if not lambda_file.exists():
+        return None
+
+    try:
+        lambda_values = []
+        with open(lambda_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    lambda_values.append(float(line))
+
+        logger.info(f"从 lambda.dat 读取到 {len(lambda_values)} 个 Lambda 值")
+        return lambda_values
+    except Exception as e:
+        logger.warning(f"读取 lambda.dat 失败: {e}")
+        return None
+
+
+def check_xvg_data_source(data_dir: Union[str, Path]) -> Dict:
+    """
+    检查数据目录中是否存在 rerun XVG 文件（MBAR 替代数据源）
+
+    Parameters
+    ----------
+    data_dir : str or Path
+        数据目录路径
+
+    Returns
+    -------
+    result : dict
+        {
+            'has_xvg': bool,
+            'n_replicas': int,
+            'n_states': int,
+            'n_files': int,
+            'xvg_files': list[Path]
+        }
+    """
+    # 复用 preprocessing 模块的函数
+    try:
+        from . import preprocessing
+        xvg_info = preprocessing.detect_xvg_file_pattern(data_dir)
+        logger.info(f"XVG 数据源检测: {xvg_info['has_xvg']}")
+        return xvg_info
+    except Exception as e:
+        logger.warning(f"XVG 数据源检测失败: {e}")
+        return {
+            'has_xvg': False,
+            'n_replicas': 0,
+            'n_states': 0,
+            'n_files': 0,
+            'xvg_files': []
+        }
+
+
 def analyze_lambda_parameters(data_dir: Union[str, Path] = 'data',
                                replica_dirs: Optional[List[str]] = None) -> Dict:
     """
@@ -439,20 +511,46 @@ def analyze_lambda_parameters(data_dir: Union[str, Path] = 'data',
     # 确定多状态能量列数（取最常见值或第一个）
     n_multistate_cols = n_states_list[0] if n_states_list else 0
 
-    # 判断是否为REST2模拟
-    is_rest2 = has_replica_lambda_all and n_unique_lambdas > 1
+    # [新增] 检查替代数据源：lambda.dat 和 rerun XVG 文件
+    lambda_values_from_file = read_lambda_dat(data_dir)
+    xvg_data_info = check_xvg_data_source(data_dir)
 
-    # 判断是否可以进行MBAR分析
-    is_mbar_ready = has_multistate_energy_all and is_rest2
+    has_lambda_dat = lambda_values_from_file is not None
+    has_xvg_data = xvg_data_info['has_xvg']
+
+    # 如果有 lambda.dat，使用文件中的真实 λ 值
+    if has_lambda_dat:
+        logger.info(f"发现 lambda.dat，包含 {len(lambda_values_from_file)} 个状态")
+        # 更新 unique_lambdas 为真实的 λ 值
+        unique_lambdas = lambda_values_from_file
+        n_unique_lambdas = len(unique_lambdas)
+
+    # 如果有 XVG 数据，可以作为 MBAR 的替代能量源
+    if has_xvg_data:
+        n_xvg_files = len(xvg_data_info['xvg_files'])
+        logger.info(f"发现 {n_xvg_files} 个 rerun XVG 文件")
+        # XVG 文件数量应该匹配 n_replicas × n_states
+        expected_xvg_files = len(replica_dirs) * xvg_data_info['n_states']
+        if n_xvg_files >= expected_xvg_files:
+            logger.info("XVG 文件数量符合预期，可作为 MBAR 数据源")
+
+    # 判断是否为REST2模拟（考虑 lambda.dat）
+    is_rest2 = (has_replica_lambda_all and n_unique_lambdas > 1) or \
+               (has_lambda_dat and len(lambda_values_from_file) > 1)
+
+    # 判断是否可以进行MBAR分析（考虑 XVG 数据源）
+    # 原条件：EDR 有多状态能量 AND 是 REST2
+    # 新条件：(EDR 有多状态能量 OR XVG 文件存在) AND 是 REST2
+    is_mbar_ready = (has_multistate_energy_all or has_xvg_data) and is_rest2
 
     # 确定整体状态
-    if not has_multistate_energy_all:
+    if not has_multistate_energy_all and not has_xvg_data:
         status = 'error'
         issues.append({
             'type': 'multistate_energy',
             'severity': 'error',
-            'message': '缺少MBAR所需的多状态能量列',
-            'solution': '使用 gmx mdrun -rerun 重新计算'
+            'message': 'EDR 缺少多状态能量列，且未找到 rerun XVG 文件',
+            'solution': '使用 gmx mdrun -rerun 生成 XVG 文件'
         })
     elif not is_rest2:
         status = 'warning'
@@ -464,6 +562,16 @@ def analyze_lambda_parameters(data_dir: Union[str, Path] = 'data',
     else:
         status = 'ok'
 
+    # 如果有 XVG 数据但 EDR 无多状态能量，降级为 warning
+    if has_xvg_data and not has_multistate_energy_all and is_rest2:
+        status = 'warning'
+        issues.append({
+            'type': 'data_source',
+            'severity': 'info',
+            'message': 'EDR 无多状态能量，但找到 XVG 数据源',
+            'solution': '可以使用 --energy-source xvg 进行 MBAR 分析'
+        })
+
     return {
         'replica_lambda_values': replica_lambda_values,
         'unique_lambdas': unique_lambdas,
@@ -474,7 +582,12 @@ def analyze_lambda_parameters(data_dir: Union[str, Path] = 'data',
         'is_rest2': is_rest2,
         'is_mbar_ready': is_mbar_ready,
         'status': status,
-        'issues': issues
+        'issues': issues,
+        # 新增字段
+        'lambda_values_from_file': lambda_values_from_file,
+        'has_lambda_dat': has_lambda_dat,
+        'has_xvg_data': has_xvg_data,
+        'xvg_data_info': xvg_data_info
     }
 
 
