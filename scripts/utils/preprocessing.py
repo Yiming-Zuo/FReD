@@ -926,6 +926,18 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
         )
 
     # 8. 组装完整输出
+    # 过滤掉已经不适用的警告（数据已重组，N_k已正确计算）
+    filtered_warnings = []
+    reorganization_warning_keywords = ["按副本组织", "N_k为占位符", "reorganize_u_kn_by_state"]
+
+    for warning in energy_data.get('warnings', []):
+        # 检查是否是重组相关的警告
+        if any(keyword in warning for keyword in reorganization_warning_keywords):
+            logger.info(f"[已修复] 跳过已处理的警告: {warning[:50]}...")
+        else:
+            # 保留其他警告
+            filtered_warnings.append(warning)
+
     mbar_input = {
         'u_kn': u_kn_correct,
         'N_k': N_k_correct,
@@ -940,7 +952,7 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
         'state_cycle_indices': reorganized['state_cycle_indices'],
         'state_replica_indices': reorganized['state_replica_indices'],
         'status': 'ok',
-        'warnings': energy_data.get('warnings', [])
+        'warnings': filtered_warnings  # 使用过滤后的警告列表
     }
 
     logger.info("MBAR输入数据准备完成")
