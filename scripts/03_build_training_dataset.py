@@ -316,8 +316,6 @@ def main():
     print(f"  - 坐标: {dataset['coordinates'].shape}")
     print(f"  - 能量: {dataset['energies'].shape}")
 
-    print(f"\n[NEW] 数据集可用于生成模型（如FreeFlow）训练")
-
     return 0
 
 

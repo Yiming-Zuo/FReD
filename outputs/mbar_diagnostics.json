@@ -1,0 +1,27 @@
+{
+  "target_state": 0,
+  "n_states": 5,
+  "n_samples_original": 505,
+  "n_samples_subsampled": 428,
+  "skip_subsample": false,
+  "min_overlap": 0.18657404834003938,
+  "effective_sample_size": 0.0,
+  "is_converged": false,
+  "warnings": [
+    "有效样本数计算失败: only length-1 arrays can be converted to Python scalars"
+  ],
+  "free_energies": [
+    0.0,
+    0.7933172584992878,
+    1.5244262952470935,
+    2.1944633963633997,
+    2.8052418840345696
+  ],
+  "uncertainties": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ]
+}

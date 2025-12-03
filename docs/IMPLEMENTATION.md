@@ -26,7 +26,7 @@
 
 ### 项目目标
 
-将GROMACS REST2增强采样数据转换为无偏平衡系综，用于生成模型（如FreeFlow）训练。
+将GROMACS REST2增强采样数据转换为无偏平衡系综，用于生成模型训练。
 
 ### 核心工作流
 
@@ -1450,7 +1450,6 @@ def main():
     print(f"{GREEN}[OK] 训练数据集构建完成{RESET}")
     print(f"{GREEN}{'='*60}{RESET}")
     print(f"\n数据集已保存至: {output_path}")
-    print(f"可用于生成模型（如FreeFlow）训练")
 
     return 0
 

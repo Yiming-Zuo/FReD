@@ -946,6 +946,8 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
         'n_cycles': energy_data['n_cycles'],
         'n_replicas': energy_data['n_replicas'],
         'n_states': energy_data['n_states'],
+        'replica_indices': energy_data['replica_indices'],  # 原始副本索引（按副本展开）
+        'cycle_indices': energy_data['cycle_indices'],      # 原始周期索引（按副本展开）
         'exchange_statistics': exchange_stats,
         'validation_summary': validation_report['summary'],
         'state_sample_indices': reorganized['state_sample_indices'],

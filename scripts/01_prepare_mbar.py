@@ -170,7 +170,9 @@ def main():
         lambda_values=mbar_input['lambda_values'],
         n_cycles=mbar_input['n_cycles'],
         n_replicas=mbar_input['n_replicas'],
-        n_states=mbar_input['n_states']
+        n_states=mbar_input['n_states'],
+        replica_indices=mbar_input['replica_indices'],
+        cycle_indices=mbar_input['cycle_indices']
     )
 
     print(f"{GREEN}[OK] 数据已保存{RESET}")
