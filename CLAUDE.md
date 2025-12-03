@@ -71,7 +71,20 @@ python scripts/01_prepare_mbar.py
 python scripts/02_run_mbar.py [--skip-subsample] [--target-state 0]
 
 # 步骤3: 构建训练集
-python scripts/03_build_training_dataset.py [--n-samples 10000]
+# 默认配置（10000个样本，包含所有原子）
+python scripts/03_build_training_dataset.py
+
+# 仅保存溶质原子（推荐用于生成模型训练）
+python scripts/03_build_training_dataset.py --solute-only
+
+# 自定义样本数
+python scripts/03_build_training_dataset.py --n-samples 5000
+
+# 组合使用（500个样本，仅溶质）
+python scripts/03_build_training_dataset.py --n-samples 500 --solute-only
+
+# 自定义原子选择（例如：仅选择蛋白质）
+python scripts/03_build_training_dataset.py --solute-only --solute-selection "protein"
 ```
 
 ### 辅助工具

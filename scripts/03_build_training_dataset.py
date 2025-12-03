@@ -146,6 +146,19 @@ def parse_args():
         help='随机种子（用于可重复性）'
     )
 
+    parser.add_argument(
+        '--solute-only',
+        action='store_true',
+        help='仅保存溶质原子坐标（排除溶剂分子）'
+    )
+
+    parser.add_argument(
+        '--solute-selection',
+        type=str,
+        default='not water and not resname SOL',
+        help='溶质原子选择语法（mdtraj风格，默认: "not water and not resname SOL"）'
+    )
+
     return parser.parse_args()
 
 
@@ -224,6 +237,9 @@ def main():
     print(f"  目标样本数: {args.n_samples}")
     print(f"  重采样方法: {args.resample_method}")
     print(f"  计算二面角: {'是' if args.compute_dihedrals else '否'}")
+    print(f"  仅溶质原子: {'是' if args.solute_only else '否'}")
+    if args.solute_only:
+        print(f"  原子选择: {args.solute_selection}")
     if args.random_seed is not None:
         print(f"  随机种子: {args.random_seed}")
 
@@ -239,7 +255,8 @@ def main():
             target_state=args.target_state,
             resample_method=args.resample_method,
             compute_dihedrals=args.compute_dihedrals,
-            random_seed=args.random_seed
+            random_seed=args.random_seed,
+            atom_selection=args.solute_selection if args.solute_only else None
         )
         print(f"\n{GREEN}[OK] 数据集构建完成{RESET}")
     except Exception as e:

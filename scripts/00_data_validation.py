@@ -51,7 +51,7 @@ def main():
     print(f"{BOLD}{'='*60}{RESET}")
     print()
 
-    data_dir = Path('data_0')
+    data_dir = Path('data')
     if not data_dir.exists():
         print(f"{RED}错误: data/ 目录不存在{RESET}")
         return 1

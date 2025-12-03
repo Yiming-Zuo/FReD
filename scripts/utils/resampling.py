@@ -93,7 +93,8 @@ def extract_configurations(xtc_paths: List[str],
                           sample_indices: np.ndarray,
                           replica_indices: np.ndarray,
                           cycle_indices: np.ndarray,
-                          extract_box: bool = True) -> Dict:
+                          extract_box: bool = True,
+                          atom_selection: str = None) -> Dict:
     """
     从XTC文件提取构象坐标
 
@@ -113,6 +114,9 @@ def extract_configurations(xtc_paths: List[str],
         每个全局样本对应的cycle_id
     extract_box : bool, optional
         是否提取盒子向量
+    atom_selection : str, optional
+        原子选择语法（mdtraj风格，例如: "not water and not resname SOL"）
+        如果为None，则保存所有原子
 
     Returns
     -------
@@ -138,9 +142,24 @@ def extract_configurations(xtc_paths: List[str],
     n_replicas = len(xtc_paths)
 
     logger.info(f"预加载 {n_replicas} 个副本的完整轨迹...")
+    original_n_atoms = None
     for rep_id, xtc_path in enumerate(xtc_paths):
         logger.info(f"  加载副本{rep_id}: {xtc_path}")
-        traj_cache[rep_id] = io.load_trajectory(xtc_path, top_path)
+        traj = io.load_trajectory(xtc_path, top_path)
+
+        # 记录原始原子数
+        if original_n_atoms is None:
+            original_n_atoms = traj.n_atoms
+
+        # 如果指定了原子选择，则在缓存前先过滤
+        if atom_selection is not None:
+            atom_indices = traj.topology.select(atom_selection)
+            traj = traj.atom_slice(atom_indices)
+            if rep_id == 0:
+                logger.info(f"  原子选择: '{atom_selection}'")
+                logger.info(f"  选中原子数: {traj.n_atoms}/{original_n_atoms}")
+
+        traj_cache[rep_id] = traj
 
     logger.info(f"[OK] 所有轨迹已加载到内存")
 
@@ -351,7 +370,8 @@ def build_training_dataset(xtc_paths: List[str],
                            target_state: int = 0,
                            resample_method: str = 'multinomial',
                            compute_dihedrals: bool = False,
-                           random_seed: Optional[int] = None) -> Dict:
+                           random_seed: Optional[int] = None,
+                           atom_selection: str = None) -> Dict:
     """
     构建完整训练数据集
 
@@ -379,6 +399,9 @@ def build_training_dataset(xtc_paths: List[str],
         是否计算二面角特征
     random_seed : int, optional
         随机种子
+    atom_selection : str, optional
+        原子选择语法（mdtraj风格，例如: "not water and not resname SOL"）
+        如果为None，则保存所有原子
 
     Returns
     -------
@@ -405,7 +428,8 @@ def build_training_dataset(xtc_paths: List[str],
         resampled_indices,
         replica_indices,
         cycle_indices,
-        extract_box=True
+        extract_box=True,
+        atom_selection=atom_selection
     )
 
     coordinates = config_result['coordinates']
