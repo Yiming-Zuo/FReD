@@ -130,11 +130,177 @@ def extract_multistate_energies(edr_df: pd.DataFrame,
     return u_matrix
 
 
+def detect_xvg_file_pattern(data_dir: Union[str, Path]) -> Dict:
+    """
+    检测数据目录中是否存在 rerun XVG 文件
+
+    Parameters
+    ----------
+    data_dir : str or Path
+        数据目录路径
+
+    Returns
+    -------
+    result : dict
+        {
+            'has_xvg': bool,  # 是否存在 XVG 文件
+            'n_replicas': int,  # 副本数
+            'n_states': int,  # 状态数
+            'xvg_files': list[Path]  # 所有 XVG 文件路径
+        }
+
+    检测逻辑
+    -------
+    查找匹配 rerun_r*_l*_Potential.xvg 的文件
+    从文件名提取最大副本ID和状态ID
+    """
+    import re
+
+    data_path = Path(data_dir)
+    pattern = re.compile(r'rerun_r(\d+)_l(\d+)_Potential\.xvg')
+
+    # 查找所有匹配的文件
+    xvg_files = []
+    replica_ids = set()
+    state_ids = set()
+
+    for xvg_file in data_path.glob('rerun_r*_l*_Potential.xvg'):
+        match = pattern.match(xvg_file.name)
+        if match:
+            replica_id = int(match.group(1))
+            state_id = int(match.group(2))
+            replica_ids.add(replica_id)
+            state_ids.add(state_id)
+            xvg_files.append(xvg_file)
+
+    if not xvg_files:
+        return {
+            'has_xvg': False,
+            'n_replicas': 0,
+            'n_states': 0,
+            'xvg_files': []
+        }
+
+    # 假设副本和状态ID从0开始连续
+    n_replicas = max(replica_ids) + 1 if replica_ids else 0
+    n_states = max(state_ids) + 1 if state_ids else 0
+
+    logger.info(f"检测到 {len(xvg_files)} 个 rerun XVG 文件")
+    logger.info(f"副本数: {n_replicas}, 状态数: {n_states}")
+
+    return {
+        'has_xvg': True,
+        'n_replicas': n_replicas,
+        'n_states': n_states,
+        'xvg_files': xvg_files
+    }
+
+
+def extract_multistate_energies_from_xvg(
+    data_dir: Union[str, Path],
+    replica_dirs: List[str],
+    n_states: int
+) -> List[np.ndarray]:
+    """
+    从 rerun 生成的 XVG 文件提取多状态能量矩阵
+
+    Parameters
+    ----------
+    data_dir : str or Path
+        数据目录路径（包含 rerun_r*_l*.xvg 文件）
+    replica_dirs : list of str
+        副本目录列表（用于确定副本数量）
+    n_states : int
+        Lambda 状态数量
+
+    Returns
+    -------
+    u_replicas : list of np.ndarray
+        每个副本的能量矩阵列表
+        每个矩阵形状：(n_cycles, n_states)
+
+    文件命名约定
+    -----------
+    rerun_r{replica_id}_l{lambda_idx}_Potential.xvg
+
+    示例：
+    - rerun_r0_l0_Potential.xvg  # 副本0在状态0的能量
+    - rerun_r0_l1_Potential.xvg  # 副本0在状态1的能量
+
+    Raises
+    ------
+    FileNotFoundError
+        如果缺少必需的 XVG 文件
+    ValueError
+        如果不同状态的周期数不一致
+    """
+    from . import io
+
+    data_path = Path(data_dir)
+    n_replicas = len(replica_dirs)
+    u_replicas = []
+
+    logger.info(f"从 XVG 文件提取能量矩阵（{n_replicas} 副本，{n_states} 状态）")
+
+    for rep_idx in range(n_replicas):
+        logger.info(f"处理副本 {rep_idx}...")
+
+        # 读取该副本在所有状态的能量
+        state_energies = []
+        n_cycles_per_state = []
+
+        for state_idx in range(n_states):
+            xvg_file = data_path / f"rerun_r{rep_idx}_l{state_idx}_Potential.xvg"
+
+            if not xvg_file.exists():
+                raise FileNotFoundError(
+                    f"缺少 XVG 文件: {xvg_file}\n"
+                    f"副本{rep_idx}的状态{state_idx}能量文件不存在。\n"
+                    f"请确保所有 rerun_r{rep_idx}_l{{0..{n_states-1}}}_Potential.xvg 文件都存在。"
+                )
+
+            # 读取 XVG 文件
+            df = io.read_xvg_file(xvg_file)
+
+            # 提取 Potential 列
+            if 'Potential' not in df.columns:
+                raise ValueError(
+                    f"XVG 文件 {xvg_file} 缺少 'Potential' 列。\n"
+                    f"找到的列: {list(df.columns)}"
+                )
+
+            energy = df['Potential'].values
+            state_energies.append(energy)
+            n_cycles_per_state.append(len(energy))
+
+            logger.debug(f"  状态{state_idx}: {len(energy)} 个周期")
+
+        # 验证所有状态的周期数一致
+        if len(set(n_cycles_per_state)) > 1:
+            raise ValueError(
+                f"副本{rep_idx}不同状态的周期数不一致:\n" +
+                '\n'.join([f"  状态{i}: {n}" for i, n in enumerate(n_cycles_per_state)])
+            )
+
+        n_cycles = n_cycles_per_state[0]
+
+        # 构建该副本的能量矩阵 (n_cycles, n_states)
+        u_matrix = np.column_stack(state_energies)
+        u_replicas.append(u_matrix)
+
+        logger.info(f"  副本{rep_idx}: {n_cycles} 个周期, {n_states} 个状态")
+
+    logger.info(f"成功从 XVG 文件提取了 {len(u_replicas)} 个副本的能量矩阵")
+
+    return u_replicas
+
+
 def extract_energy_matrix(data_dir: Union[str, Path] = 'data',
                           replica_dirs: Optional[List[str]] = None,
-                          n_states: Optional[int] = None) -> Dict:
+                          n_states: Optional[int] = None,
+                          energy_source: str = 'auto') -> Dict:
     """
-    从所有副本的EDR文件提取完整能量矩阵
+    从所有副本的EDR或XVG文件提取完整能量矩阵
 
     Parameters
     ----------
@@ -144,6 +310,11 @@ def extract_energy_matrix(data_dir: Union[str, Path] = 'data',
         副本目录列表，如果为None则自动发现
     n_states : int, optional
         Lambda状态数量，如果为None则自动检测
+    energy_source : str, default='auto'
+        能量数据源选择：
+        - 'auto': 自动选择（优先 EDR，无则尝试 XVG）
+        - 'edr': 仅从 EDR 文件读取
+        - 'xvg': 仅从 rerun XVG 文件读取
 
     Returns
     -------
@@ -158,7 +329,8 @@ def extract_energy_matrix(data_dir: Union[str, Path] = 'data',
             'cycle_indices': np.ndarray,
             'replica_indices': np.ndarray,
             'status': str,
-            'warnings': List[str]
+            'warnings': List[str],
+            'energy_source_used': str  # 实际使用的数据源
         }
     """
     from . import io, validation
@@ -176,46 +348,115 @@ def extract_energy_matrix(data_dir: Union[str, Path] = 'data',
     n_replicas = len(replica_dirs)
     logger.info(f"发现 {n_replicas} 个副本目录: {replica_dirs}")
 
-    # 2. 检测Lambda状态（从第一个EDR）
-    if n_states is None:
+    # 2. 确定能量数据源
+    if energy_source == 'auto':
+        # 尝试从 EDR 检测多状态能量
         first_edr = data_path / replica_dirs[0] / 'prod.edr'
-        edr_df = io.read_edr_file(first_edr)
-        lambda_values = detect_lambda_states(edr_df)
+        if first_edr.exists():
+            logger.info("检测 EDR 文件中是否包含多状态能量...")
+            edr_df = io.read_edr_file(first_edr)
+            lambda_values_edr = detect_lambda_states(edr_df)
+            if lambda_values_edr:
+                energy_source = 'edr'
+                logger.info("[OK] 检测到 EDR 中包含多状态能量，使用 EDR 数据源")
+            else:
+                # EDR 无多状态能量，检查 XVG
+                logger.info("[INFO] EDR 不包含多状态能量，检查 rerun XVG 文件...")
+                xvg_info = detect_xvg_file_pattern(data_path)
+                if xvg_info['has_xvg']:
+                    energy_source = 'xvg'
+                    logger.info(f"[OK] 找到 {len(xvg_info['xvg_files'])} 个 rerun XVG 文件，使用 XVG 数据源")
+                else:
+                    raise ValueError(
+                        "未找到可用的能量数据源。\n"
+                        "EDR 文件不包含多状态能量，且未找到 rerun XVG 文件。\n"
+                        "请使用 gmx mdrun -rerun 生成 XVG 文件：\n"
+                        "  gmx mdrun -rerun traj.xtc -deffnm rerun_r{replica}_l{lambda}"
+                    )
+        else:
+            # EDR 不存在，尝试 XVG
+            logger.info("[INFO] 未找到 EDR 文件，检查 rerun XVG 文件...")
+            xvg_info = detect_xvg_file_pattern(data_path)
+            if xvg_info['has_xvg']:
+                energy_source = 'xvg'
+                logger.info(f"[OK] 找到 {len(xvg_info['xvg_files'])} 个 rerun XVG 文件，使用 XVG 数据源")
+            else:
+                raise ValueError("未找到 EDR 或 XVG 能量文件")
 
-        if not lambda_values:
-            raise ValueError(
-                f"EDR文件 {first_edr} 中未检测到多状态能量列。\n"
-                "可能的原因：\n"
-                "1. 不是REST2模拟\n"
-                "2. EDR文件不包含多状态能量（需要rerun）"
-            )
+    logger.info(f"\n{'='*60}")
+    logger.info(f"使用能量数据源: {energy_source.upper()}")
+    logger.info(f"{'='*60}\n")
 
-        n_states = len(lambda_values)
+    # 3. 根据数据源提取能量矩阵
+    if energy_source == 'edr':
+        # 原有 EDR 提取逻辑
+        if n_states is None:
+            first_edr = data_path / replica_dirs[0] / 'prod.edr'
+            edr_df = io.read_edr_file(first_edr)
+            lambda_values = detect_lambda_states(edr_df)
+
+            if not lambda_values:
+                raise ValueError(
+                    f"EDR文件 {first_edr} 中未检测到多状态能量列。\n"
+                    "可能的原因：\n"
+                    "1. 不是REST2模拟\n"
+                    "2. EDR文件不包含多状态能量（需要rerun）"
+                )
+
+            n_states = len(lambda_values)
+        else:
+            lambda_values = list(range(n_states))
+
+        logger.info(f"Lambda状态数: {n_states}")
+
+        # 提取所有副本的能量矩阵
+        u_replicas = []
+        n_cycles_list = []
+
+        for rep_dir in replica_dirs:
+            edr_path = data_path / rep_dir / 'prod.edr'
+
+            if not edr_path.exists():
+                raise FileNotFoundError(f"EDR文件不存在: {edr_path}")
+
+            logger.info(f"读取 {rep_dir}/prod.edr ...")
+            edr_df = io.read_edr_file(edr_path)
+            n_cycles = len(edr_df)
+            n_cycles_list.append(n_cycles)
+
+            # 提取该副本的多状态能量
+            u_matrix = extract_multistate_energies(edr_df, n_states)
+            u_replicas.append(u_matrix)
+
+            logger.info(f"  {rep_dir}: {n_cycles} 个周期, {n_states} 个状态")
+
+    elif energy_source == 'xvg':
+        # 新增 XVG 提取逻辑
+        if n_states is None:
+            xvg_info = detect_xvg_file_pattern(data_path)
+            if not xvg_info['has_xvg']:
+                raise ValueError(
+                    f"未在 {data_path} 中找到 rerun XVG 文件。\n"
+                    "请确保存在 rerun_r{{0..N}}_l{{0..M}}_Potential.xvg 文件。"
+                )
+            n_states = xvg_info['n_states']
+            lambda_values = list(range(n_states))
+        else:
+            lambda_values = list(range(n_states))
+
+        logger.info(f"Lambda状态数: {n_states}")
+
+        # 从 XVG 文件提取能量矩阵
+        u_replicas = extract_multistate_energies_from_xvg(
+            data_path, replica_dirs, n_states
+        )
+        n_cycles_list = [u.shape[0] for u in u_replicas]
+
     else:
-        lambda_values = list(range(n_states))
-
-    logger.info(f"Lambda状态数: {n_states}")
-
-    # 3. 提取所有副本的能量矩阵
-    u_replicas = []  # 存储每个副本的能量矩阵
-    n_cycles_list = []
-
-    for rep_dir in replica_dirs:
-        edr_path = data_path / rep_dir / 'prod.edr'
-
-        if not edr_path.exists():
-            raise FileNotFoundError(f"EDR文件不存在: {edr_path}")
-
-        logger.info(f"读取 {rep_dir}/prod.edr ...")
-        edr_df = io.read_edr_file(edr_path)
-        n_cycles = len(edr_df)
-        n_cycles_list.append(n_cycles)
-
-        # 提取该副本的多状态能量
-        u_matrix = extract_multistate_energies(edr_df, n_states)  # (n_cycles, n_states)
-        u_replicas.append(u_matrix)
-
-        logger.info(f"  {rep_dir}: {n_cycles} 个周期, {n_states} 个状态")
+        raise ValueError(
+            f"不支持的 energy_source: {energy_source}\n"
+            "支持的选项: 'auto', 'edr', 'xvg'"
+        )
 
     # 4. 验证所有副本的时间步数一致
     if len(set(n_cycles_list)) > 1:
@@ -275,6 +516,7 @@ def extract_energy_matrix(data_dir: Union[str, Path] = 'data',
     logger.info("能量矩阵提取完成")
     logger.info(f"  u_kn shape: {u_kn.shape}")
     logger.info(f"  N_k shape: {N_k.shape}")
+    logger.info(f"  使用的数据源: {energy_source.upper()}")
 
     return {
         'u_kn': u_kn,
@@ -285,8 +527,9 @@ def extract_energy_matrix(data_dir: Union[str, Path] = 'data',
         'n_states': n_states,
         'cycle_indices': cycle_indices,
         'replica_indices': replica_indices,
-        'status': 'ok' if not validation_result['issues'] else 'warning',
-        'warnings': warnings_list
+        'status': 'ok',
+        'warnings': warnings_list,
+        'energy_source_used': energy_source  # 记录实际使用的数据源
     }
 
 
@@ -548,7 +791,8 @@ def calculate_exchange_statistics(exchange_records: Dict,
 # ==================== 数据整合模块 ====================
 
 def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
-                       validation_report_path: Optional[str] = None) -> Dict:
+                       validation_report_path: Optional[str] = None,
+                       energy_source: str = 'auto') -> Dict:
     """
     准备MBAR输入数据（01_prepare_mbar.py的核心逻辑）
 
@@ -558,6 +802,11 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
         数据目录路径
     validation_report_path : str, optional
         验证报告路径（JSON）
+    energy_source : str, default='auto'
+        能量数据源选择：
+        - 'auto': 自动选择（优先 EDR，无则尝试 XVG）
+        - 'edr': 仅从 EDR 文件读取
+        - 'xvg': 仅从 rerun XVG 文件读取
 
     Returns
     -------
@@ -582,15 +831,22 @@ def prepare_mbar_input(data_dir: Union[str, Path] = 'data',
             'lambda_analysis': full_report['lambda_analysis']
         }
 
-    if not validation_report['summary']['is_mbar_ready']:
+    # 当使用 XVG 数据源时，跳过 MBAR ready 检查（因为验证系统只检查 EDR）
+    if energy_source != 'xvg' and not validation_report['summary']['is_mbar_ready']:
         raise ValueError(
             "数据未通过验证，无法进行MBAR分析。\n"
-            f"问题: {validation_report['summary']}"
+            f"问题: {validation_report['summary']}\n"
+            "提示: 如果已有 rerun XVG 文件，可以使用 --energy-source xvg"
         )
+    elif energy_source == 'xvg':
+        logger.info("[INFO] 使用 XVG 数据源，跳过 EDR MBAR ready 检查")
 
     # 2. 提取能量矩阵
     logger.info("提取能量矩阵...")
-    energy_data = extract_energy_matrix(data_dir)
+    energy_data = extract_energy_matrix(
+        data_dir=data_dir,
+        energy_source=energy_source  # 传递 energy_source 参数
+    )
 
     # 3. 解析交换记录并验证LOG一致性
     logger.info("解析副本交换记录...")

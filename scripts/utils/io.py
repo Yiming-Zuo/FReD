@@ -43,6 +43,100 @@ def read_edr_file(edr_path: Union[str, Path]) -> pd.DataFrame:
     return df
 
 
+def read_xvg_file(xvg_path: Union[str, Path]) -> pd.DataFrame:
+    """
+    读取 GROMACS XVG 文件
+
+    Parameters
+    ----------
+    xvg_path : str or Path
+        XVG 文件路径
+
+    Returns
+    -------
+    df : pd.DataFrame
+        包含时间和数据列的 DataFrame
+        列名：['Time'] + 从 @sN legend 提取的列名
+
+    Notes
+    -----
+    XVG 文件格式：
+    - # 开头：注释行（跳过）
+    - @ 开头：格式标记行（解析图例信息）
+    - 数据行：空格分隔的数值
+
+    示例
+    ----
+    >>> df = read_xvg_file('rerun_r0_l0_Potential.xvg')
+    >>> df.columns
+    Index(['Time', 'Potential'], dtype='object')
+    """
+    import re
+
+    xvg_path = Path(xvg_path)
+    if not xvg_path.exists():
+        raise FileNotFoundError(f"XVG文件不存在: {xvg_path}")
+
+    logger.info(f"读取XVG文件: {xvg_path}")
+
+    # 解析图例信息
+    legend_pattern = re.compile(r'@ s(\d+) legend "(.*?)"')
+    legends = {}
+    data_lines = []
+
+    with open(xvg_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+
+            # 跳过空行
+            if not line:
+                continue
+
+            # 解析图例
+            if line.startswith('@'):
+                match = legend_pattern.search(line)
+                if match:
+                    col_idx = int(match.group(1))
+                    col_name = match.group(2)
+                    legends[col_idx] = col_name
+                continue
+
+            # 跳过注释
+            if line.startswith('#'):
+                continue
+
+            # 数据行
+            data_lines.append(line)
+
+    if not data_lines:
+        raise ValueError(f"XVG文件没有数据行: {xvg_path}")
+
+    # 解析数据行
+    data_rows = []
+    for line in data_lines:
+        values = line.split()
+        data_rows.append([float(v) for v in values])
+
+    # 创建 DataFrame
+    data_array = np.array(data_rows)
+    n_cols = data_array.shape[1]
+
+    # 构建列名：第一列是时间，后续列使用图例或默认命名
+    column_names = ['Time']
+    for i in range(1, n_cols):
+        if (i-1) in legends:
+            column_names.append(legends[i-1])
+        else:
+            column_names.append(f'Column_{i}')
+
+    df = pd.DataFrame(data_array, columns=column_names)
+
+    logger.info(f"读取完成，包含 {len(df)} 个时间步，{len(df.columns)} 列")
+    logger.info(f"列名: {list(df.columns)}")
+
+    return df
+
+
 def read_log_file(log_path: Union[str, Path]) -> str:
     """
     读取GROMACS LOG文件

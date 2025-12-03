@@ -12,12 +12,13 @@ MBAR输入数据准备脚本
 
 使用方法：
     conda activate fred
-    python scripts/01_prepare_mbar.py
+    python scripts/01_prepare_mbar.py [--energy-source {auto,edr,xvg}]
 """
 
 import sys
 from pathlib import Path
 import numpy as np
+import argparse
 
 sys.path.insert(0, str(Path(__file__).parent))
 from utils import validation, preprocessing, io
@@ -77,12 +78,44 @@ def print_statistics(mbar_input: dict):
 
 def main():
     """主函数"""
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(
+        description='准备 MBAR 输入数据',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+能量数据源选项:
+  auto    自动检测（优先 EDR，无则尝试 XVG）
+  edr     仅从 EDR 文件读取
+  xvg     仅从 rerun XVG 文件读取
+
+示例:
+  # 自动检测数据源
+  python scripts/01_prepare_mbar.py
+
+  # 强制使用 XVG 文件
+  python scripts/01_prepare_mbar.py --energy-source xvg
+        """
+    )
+    parser.add_argument(
+        '--energy-source',
+        choices=['auto', 'edr', 'xvg'],
+        default='auto',
+        help='能量数据源：auto（自动检测）、edr（仅EDR）、xvg（仅XVG）'
+    )
+    parser.add_argument(
+        '--data-dir',
+        default='data',
+        help='数据目录路径（默认：data）'
+    )
+    args = parser.parse_args()
+
     print(f"{BOLD}{'='*60}{RESET}")
     print(f"{BOLD}FReD MBAR输入数据准备工具{RESET}")
     print(f"{BOLD}{'='*60}{RESET}")
+    print(f"{BLUE}能量数据源: {args.energy_source.upper()}{RESET}")
     print()
 
-    data_dir = Path('data')
+    data_dir = Path(args.data_dir)
     output_dir = Path('outputs')
     output_dir.mkdir(exist_ok=True)
 
@@ -93,13 +126,18 @@ def main():
         print(f"{YELLOW}未找到验证报告，运行数据验证...{RESET}\n")
         report = validation.run_full_validation(data_dir)
 
-        if report['summary']['overall_status'] == 'error':
+        # 当使用 XVG 数据源时，即使验证失败也允许继续（因为验证只检查 EDR）
+        if report['summary']['overall_status'] == 'error' and args.energy_source != 'xvg':
             print(f"\n{RED}{'='*60}{RESET}")
             print(f"{RED}数据验证失败，请先修复错误{RESET}")
             print(f"{RED}{'='*60}{RESET}")
+            print(f"{YELLOW}提示: 如果已有 rerun XVG 文件，可以使用 --energy-source xvg{RESET}")
             return 1
-
-        print(f"\n{GREEN}[OK] 数据验证通过{RESET}")
+        elif report['summary']['overall_status'] == 'error' and args.energy_source == 'xvg':
+            print(f"\n{YELLOW}[WARN] 数据验证失败，但使用 XVG 数据源继续{RESET}")
+            print(f"{YELLOW}        验证系统只检查 EDR，XVG 文件将在后续步骤中检查{RESET}")
+        else:
+            print(f"\n{GREEN}[OK] 数据验证通过{RESET}")
     else:
         print(f"{GREEN}[OK] 发现验证报告: {validation_report_path}{RESET}")
 
@@ -109,7 +147,8 @@ def main():
     try:
         mbar_input = preprocessing.prepare_mbar_input(
             data_dir=data_dir,
-            validation_report_path=str(validation_report_path) if validation_report_path.exists() else None
+            validation_report_path=str(validation_report_path) if validation_report_path.exists() else None,
+            energy_source=args.energy_source  # 传递 energy_source 参数
         )
     except Exception as e:
         print(f"\n{RED}{'='*60}{RESET}")
